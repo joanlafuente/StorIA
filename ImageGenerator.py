@@ -7,7 +7,7 @@ from PIL import Image
 import gradio as gr
 import os 
 
-os.environ["GRADIO_TEMP_DIR"] = r"C:\Users\Joan\Desktop\Story-Generation\Downloads"
+os.environ["GRADIO_TEMP_DIR"] = r"C:\Users\Joan\Desktop\Story-Generation\Out"
 positive_prompt = ", realistic picture, best quality, 4k, 8k, ultra highres, raw photo in hdr, sharp focus"
 negative_prompt = "worst quality, low quality, normal quality, child, painting, drawing, sketch, cartoon, anime, render, blurry"
 PATH_SKETCH = "Sketches/sketch.png"
@@ -31,6 +31,15 @@ def sketch_2_image(init_prompt, positive_prompt, negative_prompt, strength, step
     #image.save("tmp/img.png")
     return image
 
+def image2text(image):
+    # Code here to generate text from image
+    return "This is a generated image"
+
+def gen_img_and_text(prompt, positive_prompt, negative_prompt, strength, steps_slider_image):
+    image = sketch_2_image(prompt, positive_prompt, negative_prompt, strength, steps_slider_image)
+    text = image2text(image)
+    return image, text 
+
 def load_new_sketch():
     return cv2.imread(PATH_SKETCH)
 
@@ -40,6 +49,9 @@ with gr.Blocks() as demo:
     with gr.Row():
         sketch = gr.Image(label = 'Sketch')
         image = gr.Image(label = 'Final generated image.')
+
+    with gr.Row():
+        gen_text = gr.Textbox(label = 'Generated text', placeholder = "Generated text will appear here")
 
     b_new_sketch = gr.Button("Update Sketch")
     b_new_sketch.click(load_new_sketch, outputs=sketch)
@@ -73,13 +85,20 @@ with gr.Blocks() as demo:
             interactive=True,
             minimum=10,
             maximum=100,
-            value=50,
+            value=10,
             step=1,
         )
 
     with gr.Row():
         b_principal = gr.Button("Generate Image")
         b_principal.click(sketch_2_image, inputs=[text, additional_positive, additional_negative, strength, steps_slider_image], outputs=image)
+
+        b2 = gr.Button("Generate Text")
+        b2.click(image2text, inputs=image, outputs=gen_text)
+
+        b3 = gr.Button("Generate All")
+        b3.click(gen_img_and_text, inputs=[text, additional_positive, additional_negative, strength, steps_slider_image], outputs=[image, gen_text])
+
 
 if __name__ == "__main__":
     controlnet = ControlNetModel.from_pretrained("diffusers/controlnet-canny-sdxl-1.0", torch_dtype=torch.float16)
