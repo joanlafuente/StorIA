@@ -14,27 +14,27 @@ SIZE_PEN = 7
 
 
 # Functions needed to draw
-def erase():
+def erase(): # Erases markings
     t.speed(0)
     t.pencolor("white")
     t.pensize(30)
     t.shape("circle")
     t.shapesize(2)
 
-def clear():
+def clear(): # Sets all the canvas to white
     t.clear()
 
-def pen():
+def pen(): # Used to draw or mark
     t.speed(0)
     t.color("black")
     t.pensize(SIZE_PEN)
     t.shape("circle")
     t.shapesize(.7)
 
-def undo():
+def undo(): #Undo previous action
     t.undo()
 
-def save():
+def save(): # Save the picture as a file
     global OUTPUT_FILENAME
     t.speed(0)
     t.hideturtle()
@@ -46,7 +46,7 @@ def save():
     image.close()
     os.remove("tmp.ps")
 
-def increase_size():
+def increase_size(): # Increase the size of the pen
     global SIZE_PEN
     previous_size = SIZE_PEN
     SIZE_PEN += 4
@@ -58,7 +58,7 @@ def increase_size():
         if previous_size != 25:
             t.pensize(SIZE_PEN)
 
-def decrease_size():
+def decrease_size(): # Decrease size of the pen
     global SIZE_PEN
     previous_size = SIZE_PEN
     SIZE_PEN -= 4
@@ -70,10 +70,10 @@ def decrease_size():
         if previous_size != 1:
             t.pensize(SIZE_PEN)
 
-def quit():
+def quit(): # Leave the app
     t.bye()
     try:
-        instructions.destroy()
+        instruªªctions.destroy()
     except TclError:
         pass
     
