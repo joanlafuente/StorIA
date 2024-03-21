@@ -63,9 +63,7 @@ In the left image you can see an example of a posible sketch, and in the right t
   </figure>
 </div>
 
-#### The text generator make the following text given this context: 
-
-- ***Context***: The story should talk about a horse in a field. 
+#### The text generator make the following story: 
 
 - ***Generated story***: Once upon a time, 100 horses were in a field. They were all happy and healthy. One day, a farmer came and took 99 of the horses away. The last horse was left alone in the field. The horse was sad and lonely. 
 
