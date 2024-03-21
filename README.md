@@ -23,7 +23,7 @@ The repository has the following structure:
 - `ImageGenerator.py`: Main file that contains the logic of the application. It defines the code necessary for creating the Gradio application and contains the functions that call the auxiliary models, namely: Sketch2Image, Image2History.
 - `TextGenerator.ipynb`: Testing of BLIP-2 to describe the image.
 - `environment.yml`: The environment required to execute the code of the different files.
-
+- `Mistral-7B.py`: File that takes an image, runs it trought blip2 to describe it and then uses Mistral-7B to create the history.
 
 ### Models
 
