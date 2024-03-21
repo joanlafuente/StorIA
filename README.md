@@ -15,15 +15,15 @@ Lastly, StorIA will have the option to share your story on an internal social pa
 ## Repository Structure
 
 The repository has the following structure:
-- `/Design APP`:  This directory contains an overview of how the application would look like.
-- `/Design APP`: This directory contains an overview of how the application would look like.
+- `/Design APP`: This directory contains an overview of how the application would look.
 - `/Examples`: Contains a folder with the original sketch and the image generated from it.
 - `/Sketches`: Some example sketches that can be used with the ImageGenerator script.
-- `DrawSketch.py`: File with the source code for the tkinter interface, that enables a user to draw and save a sketch using a simple tool box.
+- `DrawSketch.py`: File with the source code for the Tkinter interface, which enables a user to draw and save a sketch using a simple toolbox.
 - `ImageGenerator.py`: Main file that contains the logic of the application. It defines the code necessary for creating the Gradio application and contains the functions that call the auxiliary models, namely: Sketch2Image, Image2History.
 - `TextGenerator.ipynb`: Testing of BLIP-2 to describe the image.
 - `environment.yml`: The environment required to execute the code of the different files.
-- `Mistral-7B.py`: File that takes an image, runs it trought blip2 to describe it and then uses Mistral-7B to create the history.
+- `Mistral-7B.py`: File that takes an image, runs it through BLIP-2 to describe it, and then uses Mistral-7B to create the history.
+
 
 ### Models
 
