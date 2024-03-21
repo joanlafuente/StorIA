@@ -1,5 +1,6 @@
 from diffusers import DiffusionPipeline, StableDiffusionXLControlNetPipeline, StableDiffusionXLImg2ImgPipeline, ControlNetModel, AutoencoderKL
 from diffusers.utils import load_image
+from transformers import Blip2Processor, Blip2ForConditionalGeneration, pipeline
 import numpy as np
 import torch
 import cv2
@@ -31,9 +32,19 @@ def sketch_2_image(init_prompt, positive_prompt, negative_prompt, strength, step
     #image.save("tmp/img.png")
     return image
 
-def image2text(image):
-    # Code here to generate text from image
-    return "This is a generated image"
+def describe_img(blip2, processor, image, tokens_max_lenght=100):
+    prompt = f"Question: Describe the image for a kid with enough details. Answer:"
+    inputs = processor(images=image, text=prompt, return_tensors="pt").to(device="cuda", dtype=torch.bfloat16)
+    inputs["max_new_tokens"] = tokens_max_lenght
+    generated_ids = blip2.generate(**inputs)
+    generated_text = processor.batch_decode(generated_ids, skip_special_tokens=True)[0].strip()
+    return generated_text
+
+
+def image2text(image, blip2, blip2_processor, mistral_pipe):
+    text = describe_img(blip2=blip2, processor=blip2_processor, image=image)
+    prompt = f"Context: The story should talk about {text}. Story: Once upon a time, "
+    return mistral_pipe(prompt, max_length=100)[0]["generated_text"]
 
 def gen_img_and_text(prompt, positive_prompt, negative_prompt, strength, steps_slider_image):
     image = sketch_2_image(prompt, positive_prompt, negative_prompt, strength, steps_slider_image)
@@ -101,6 +112,12 @@ with gr.Blocks() as demo:
 
 
 if __name__ == "__main__":
+    processor_blip2 = Blip2Processor.from_pretrained("Salesforce/blip2-opt-2.7b")
+    blip2 = Blip2ForConditionalGeneration.from_pretrained(
+        "Salesforce/blip2-opt-2.7b", load_in_8bit=True, device_map={"": 0}, torch_dtype=torch.float16
+    )
+    pipe_mistral = pipeline("text-generation", model="mistralai/Mistral-7B-v0.1", device = "cuda")
+
     controlnet = ControlNetModel.from_pretrained("diffusers/controlnet-canny-sdxl-1.0", torch_dtype=torch.float16)
     vae = AutoencoderKL.from_pretrained("madebyollin/sdxl-vae-fp16-fix", torch_dtype=torch.float16)
     pipe = StableDiffusionXLControlNetPipeline.from_pretrained("stabilityai/stable-diffusion-xl-base-1.0", controlnet=controlnet, vae=vae, torch_dtype=torch.float16)
