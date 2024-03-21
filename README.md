@@ -1,7 +1,7 @@
 # Story-Generation
 
 
-#Project overview
+## Project overview
 
 StorIA is an app for tablets that will use children's drawing and brief textual prompts and offer a story fitting for it. The child will draw a sketch (and optionally input a prompt), from which the app will offer an improved version of the drawing, painted and colored, and a description narrating it. The amount of text can be selected accordingly knowing the age of the target audience. 
 
@@ -9,7 +9,7 @@ Since our device will use multiple drawings, it can be made together by differen
 
 Lastly, StorIA will have the option to share your story on an internal social page. This network will have a collection of stories created by kids from all around the world. This way, even if a kid doesn't want to draw, they could read all of the posted stories, and connect with children abroad through those. The internal network will also implement a ranking system where kids can rank the stories they have read and StorIA will award the best stories of the month with some sort of prize, yet to be decided.
 
-# Repository Structure
+## Repository Structure
 
 The repository has the following structure:
 
