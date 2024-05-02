@@ -162,8 +162,12 @@ def create_layout_menu():
     button1 = Button(text='Create a new story')
     button1.bind(on_press=lambda *args:manager.switch_to(window_story, direction='up'))
 
+    button2 = Button(text='Visualize')
+    button2.bind(on_press=lambda *args: manager.switch_to(window_visualizer, direction='up'))
+
     button3 = Button(text='Collection of stories')
     layout_b.add_widget(button1)
+    layout_b.add_widget(button2)
     layout_b.add_widget(button3)     
     
     login = LogIN()
@@ -179,25 +183,98 @@ def create_layout_menu():
 
 class MenuApp(App):
     def build(self):
-        global manager, main_window, window_story, window_drawing
+        global manager, main_window, window_story, window_drawing, window_visualizer
 
         app_box = BoxLayout(orientation='vertical')
         manager = ScreenManager()
-        app_box.add_widget(manager) 
-            
+        app_box.add_widget(manager)
+
         main_window = Screen(name='main')
         window_story = Screen(name='Story generator')
         window_drawing = Screen(name='Drawing')
+        window_visualizer = Screen(name='Visualizer')
 
         main_window.add_widget(create_layout_menu())
         window_story.add_widget(create_layout_story_gen())
         window_drawing.add_widget(create_layout_draw())
-        
+        window_visualizer.add_widget(create_layout_visualizer())
+
         manager.add_widget(main_window)
         manager.add_widget(window_story)
         manager.add_widget(window_drawing)
+        manager.add_widget(window_visualizer)
 
         return app_box
+
+
+
+def create_layout_visualizer():
+    background = Image(source='background_visualizer.jpg', fit_mode='fill')
+    logo = Image(source='logo.png', size_hint=(0.25, 0.25), pos_hint={"x": 0.74, "y": 0.82})
+    home = Home()
+
+    book_layout = BoxLayout(orientation='vertical')
+    page1_text = Label(text='Page 1 Text\n\nExample text for page 1', halign='center', valign='middle')
+    page2_text = Label(text='Page 2 Text\n\nExample text for page 2', halign='center', valign='middle')
+    # Add more pages as needed
+
+    page1 = BoxLayout(orientation='vertical')
+    page1.add_widget(page1_text)
+
+    page2 = BoxLayout(orientation='vertical')
+    page2.add_widget(page2_text)
+
+    # Add more pages as needed
+
+    pages = [page1, page2]  # Add more pages as needed
+
+    current_page_index = 0
+    current_page = pages[current_page_index]
+
+    def next_page():
+        nonlocal current_page_index
+        current_page_index = min(current_page_index + 1, len(pages) - 1)
+        update_page()
+
+    def previous_page():
+        nonlocal current_page_index
+        current_page_index = max(current_page_index - 1, 0)
+        update_page()
+
+    def update_page():
+        nonlocal current_page
+        current_page = pages[current_page_index]
+        book_layout.remove_widget(book_layout.children[0])
+        book_layout.add_widget(current_page)
+
+    next_button = Button(text='Next Page')
+    next_button.bind(on_press=lambda *args: next_page())
+
+    prev_button = Button(text='Previous Page')
+    prev_button.bind(on_press=lambda *args: previous_page())
+
+    buttons_layout = BoxLayout(orientation='horizontal', size_hint=(1, 0.1))
+    buttons_layout.add_widget(prev_button)
+    buttons_layout.add_widget(next_button)
+
+    book_layout.add_widget(current_page)
+    book_layout.add_widget(buttons_layout)
+
+    layout = FloatLayout()
+    layout.add_widget(background)
+    layout.add_widget(book_layout)
+    layout.add_widget(logo)
+    layout.add_widget(home)
+
+    return layout
+
+
+
+
+
+if __name__ == '__main__':
+    app = MenuApp()
+    app.run()
 
 
 if __name__ == '__main__':
