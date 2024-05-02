@@ -11,6 +11,9 @@ from kivy.uix.textinput import TextInput
 from kivy.uix.relativelayout import RelativeLayout
 from kivy.uix.widget import Widget
 from kivy.graphics import Color, Line
+from kivy.clock import Clock
+import os
+import numpy as np
 
 import cv2
 
@@ -34,11 +37,21 @@ class Home(FloatLayout):
 
 def save_function():
     drawing.export_to_png('tmp.png')
-    # TO DO: Save the image adding a white background, and resizing it to 500x500
-    # And then update the sketch image
-    manager.switch_to(window_story, direction='down')
-    drawing.canvas.clear()
 
+    white_img = np.array([[[255, 255, 255]]*500]*500, dtype=np.uint8)
+    img = cv2.imread('tmp.png', cv2.IMREAD_UNCHANGED)
+    img = cv2.resize(img, (500, 500))
+    mask = img[:, :, 3]
+    img = img[:, :, 0:3]
+    white_img[mask == 0] = img[mask == 0]
+    white_img = cv2.bitwise_not(white_img)
+    cv2.imwrite('sketch.png', white_img)
+    # Delete the temporary image
+
+    # Update the sketch image
+    sketch.reload()
+    manager.switch_to(window_story, direction='down')
+    os.remove('tmp.png')
 
      
 class Drawing(FloatLayout):
@@ -77,11 +90,14 @@ def create_layout_draw():
 
 
     layout_buttons = BoxLayout(orientation='horizontal', size_hint=(0.4, 0.1), pos_hint={"x":0.3 ,"y": 0.3})
+    no_changes = Button(text='Return without changes')
+    no_changes.bind(on_press=lambda *args:manager.switch_to(window_story, direction='down'))
     button_save = Button(text='Save the sketch')
     button_save.bind(on_press=lambda *args:save_function())
     button_clear = Button(text='Clear the sketch')
     button_clear.bind(on_press=lambda *args:drawing.canvas.clear())
     layout_buttons.add_widget(button_save)
+    layout_buttons.add_widget(no_changes)
     layout_buttons.add_widget(button_clear)
     layout.add_widget(layout_buttons)
 
@@ -95,6 +111,7 @@ def create_layout_draw():
 
 
 def create_layout_story_gen():
+    global sketch
     background = Image(source='background_story_gen.jpg', fit_mode='fill')
     logo = Image(source='logo.png', size_hint=(0.25, 0.25), pos_hint={"x": 0.74, "y": 0.82})
     home = Home()
@@ -109,11 +126,17 @@ def create_layout_story_gen():
     buttons_sketch.add_widget(textinput)
 
     sketch = Image(source='sketch.png', size_hint=(1, 1))
+
     sketch_layout.add_widget(sketch)
     sketch_layout.add_widget(buttons_sketch)
 
     gen_Image_layout = BoxLayout(orientation='vertical')
     gen_Image = Image(source='gen_image.png', size_hint=(1, 1))
+    # Once a second, update the image
+    # def update_image(dt):
+    #     gen_Image.source = 'gen_image.png'
+    # Clock.schedule_interval(update_image, 1)
+
     genText = Button(text='Generate the text of this page',  size_hint=(0.8, 0.1), pos_hint={"x": 0.1})
     gen_Image_layout.add_widget(gen_Image)
     gen_Image_layout.add_widget(genText)
@@ -135,14 +158,12 @@ def create_layout_menu():
     logo = Image(source='logo.png', pos_hint={"y": 0.15})
     
     # Layout buttons
-    layout_b = BoxLayout(orientation='horizontal', size_hint=(1, 0.2))
+    layout_b = BoxLayout(orientation='horizontal', size_hint=(0.8, 0.2), pos_hint={"x": 0.1})
     button1 = Button(text='Create a new story')
     button1.bind(on_press=lambda *args:manager.switch_to(window_story, direction='up'))
 
-    button2 = Button(text='Stories in creation')
     button3 = Button(text='Collection of stories')
     layout_b.add_widget(button1)
-    layout_b.add_widget(button2)
     layout_b.add_widget(button3)     
     
     login = LogIN()
