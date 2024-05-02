@@ -7,7 +7,13 @@ from kivy.uix.button import Button
 from kivy.uix.floatlayout import FloatLayout
 from kivy.core.window import Window
 from kivy.uix.screenmanager import ScreenManager, Screen
+from kivy.uix.textinput import TextInput
+from kivy.uix.relativelayout import RelativeLayout
+from kivy.uix.widget import Widget
+from kivy.graphics import Color, Line
 
+# Set a white background
+Window.clearcolor = (1, 1, 1, 1)
 
 class LogIN(FloatLayout):
     def __init__(self, **kwargs):
@@ -16,15 +22,90 @@ class LogIN(FloatLayout):
     def when_pressed(self):
         print("Login button pressed")
 
-def create_layout_story_gen():
-    background = Image(source='backgorund_menu.png', fit_mode='fill')
+
+class Home(FloatLayout):
+    def __init__(self, **kwargs):
+        super(Home, self).__init__(**kwargs)
+
+    def when_pressed(self):
+        manager.switch_to(main_window, direction='down')
+
+ 
+class Drawing(FloatLayout):
+    def __init__(self, **kwargs):
+        super(Drawing, self).__init__(**kwargs)
+
+    def on_touch_down(self, touch):
+        if self.collide_point(touch.x, touch.y):
+            with self.canvas:
+                Color(0, 0, 0)
+                touch.ud['line'] = Line(points=(touch.x, touch.y))
+
+    def on_touch_move(self, touch):
+        if self.collide_point(touch.x, touch.y):
+            touch.ud['line'].points += (touch.x, touch.y)
+        
+def create_layout_draw():
+    background = Image(source='background_story_gen.jpg', fit_mode='fill')
     logo = Image(source='logo.png', size_hint=(0.25, 0.25), pos_hint={"x": 0.74, "y": 0.82})
-    
-    
+    home = Home()
+
+    # Create the whiteboard (White square where the user can draw)
+    whiteboard = FloatLayout()
+    whiteboard.add_widget(Image(source='whiteboard.png', size_hint=(0.8, 0.8), pos_hint={"x": 0.125, "y": 0.1}))
+    whiteboard.add_widget(Drawing())
+
+    layout = BoxLayout(orientation='vertical')
+    layout.add_widget(whiteboard)
+
+    button_save = Button(text='Save the sketch', size_hint=(0.2, 0.1), pos_hint={"x":0.4 ,"y": 0.3})
+    button_save.bind(on_press=lambda *args:manager.switch_to(window_story, direction='down'))
+    layout.add_widget(button_save)
+
+    final_layout = FloatLayout()
+    final_layout.add_widget(background)
+    final_layout.add_widget(layout)
+    final_layout.add_widget(logo)
+    final_layout.add_widget(home)
+    return final_layout
+
+
+
+def create_layout_story_gen():
+    background = Image(source='background_story_gen.jpg', fit_mode='fill')
+    logo = Image(source='logo.png', size_hint=(0.25, 0.25), pos_hint={"x": 0.74, "y": 0.82})
+    home = Home()
+
+    sketch_layout = BoxLayout(orientation='vertical')
+    buttons_sketch = BoxLayout(orientation='horizontal', size_hint=(0.8, 0.1), pos_hint={"x": 0.1})
+    button1 = Button(text='Update Sketch')
+    button1.bind(on_press=lambda *args:manager.switch_to(window_drawing, direction='up'))
+    # Widget to input the text to condition the image generation, textinput.text is the text entered
+    textinput = TextInput(text='Text to condition generation')
+    buttons_sketch.add_widget(button1)
+    buttons_sketch.add_widget(textinput)
+
+    sketch = Image(source='sketch.png', size_hint=(1, 1))
+    sketch_layout.add_widget(sketch)
+    sketch_layout.add_widget(buttons_sketch)
+
+    gen_Image_layout = BoxLayout(orientation='vertical')
+    gen_Image = Image(source='gen_image.png', size_hint=(1, 1))
+    genText = Button(text='Generate the text of this page',  size_hint=(0.8, 0.1), pos_hint={"x": 0.1})
+    gen_Image_layout.add_widget(gen_Image)
+    gen_Image_layout.add_widget(genText)
+
+    sketchAndGen = BoxLayout(orientation='horizontal', size_hint=(1, 0.8), pos_hint={"y": 0.15})
+    sketchAndGen.add_widget(sketch_layout)
+    sketchAndGen.add_widget(gen_Image_layout)
+        
     layout = FloatLayout()
     layout.add_widget(background)
+    layout.add_widget(sketchAndGen)
     layout.add_widget(logo)
+    layout.add_widget(home)
     return layout
+
 
 def create_layout_menu():
     background = Image(source='backgorund_menu.png', fit_mode='fill')
@@ -52,10 +133,9 @@ def create_layout_menu():
     return layout
 
 
-
 class MenuApp(App):
     def build(self):
-        global manager, main_window, window_story
+        global manager, main_window, window_story, window_drawing
 
         app_box = BoxLayout(orientation='vertical')
         manager = ScreenManager()
@@ -63,20 +143,22 @@ class MenuApp(App):
             
         main_window = Screen(name='main')
         window_story = Screen(name='Story generator')
+        window_drawing = Screen(name='Drawing')
 
         main_window.add_widget(create_layout_menu())
         window_story.add_widget(create_layout_story_gen())
+        window_drawing.add_widget(create_layout_draw())
         
         manager.add_widget(main_window)
         manager.add_widget(window_story)
+        manager.add_widget(window_drawing)
+
         return app_box
 
 
+if __name__ == '__main__':
+    app = MenuApp()
+    app.run()
 
-
-
-# Run the App
-app = MenuApp()
-app.run()
 
     

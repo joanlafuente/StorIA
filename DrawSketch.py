@@ -73,7 +73,7 @@ def decrease_size(): # Decrease size of the pen
 def quit(): # Leave the app
     t.bye()
     try:
-        instruªªctions.destroy()
+        instructions.destroy()
     except TclError:
         pass
     

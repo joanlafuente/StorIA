@@ -1,7 +1,15 @@
 <LogIN>:
     Button:
         background_normal: 'user.png'
-        background_down: 'user_pressed.png'
+        background_down: 'user.png'
         size_hint: .066, 0.13
         pos_hint: {"x":0, "y":0.88}
+        on_press: root.when_pressed()
+
+<Home>:
+    Button:
+        background_normal: 'home.png'
+        background_down: 'home.png'
+        size_hint: .05, 0.09
+        pos_hint: {"x":0.01, "y":0.91}
         on_press: root.when_pressed()
