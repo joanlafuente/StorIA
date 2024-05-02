@@ -12,6 +12,8 @@ from kivy.uix.relativelayout import RelativeLayout
 from kivy.uix.widget import Widget
 from kivy.graphics import Color, Line
 
+import cv2
+
 # Set a white background
 Window.clearcolor = (1, 1, 1, 1)
 
@@ -30,7 +32,15 @@ class Home(FloatLayout):
     def when_pressed(self):
         manager.switch_to(main_window, direction='down')
 
- 
+def save_function():
+    drawing.export_to_png('tmp.png')
+    # TO DO: Save the image adding a white background, and resizing it to 500x500
+    # And then update the sketch image
+    manager.switch_to(window_story, direction='down')
+    drawing.canvas.clear()
+
+
+     
 class Drawing(FloatLayout):
     def __init__(self, **kwargs):
         super(Drawing, self).__init__(**kwargs)
@@ -43,7 +53,12 @@ class Drawing(FloatLayout):
 
     def on_touch_move(self, touch):
         if self.collide_point(touch.x, touch.y):
-            touch.ud['line'].points += (touch.x, touch.y)
+            if 'line' in touch.ud:
+                touch.ud['line'].points += (touch.x, touch.y)
+            else:
+                with self.canvas:
+                    Color(0, 0, 0)
+                    touch.ud['line'] = Line(points=(touch.x, touch.y))
         
 def create_layout_draw():
     background = Image(source='background_story_gen.jpg', fit_mode='fill')
@@ -53,14 +68,22 @@ def create_layout_draw():
     # Create the whiteboard (White square where the user can draw)
     whiteboard = FloatLayout()
     whiteboard.add_widget(Image(source='whiteboard.png', size_hint=(0.8, 0.8), pos_hint={"x": 0.125, "y": 0.1}))
-    whiteboard.add_widget(Drawing())
+    global drawing
+    drawing = Drawing(size_hint=(0.39, 0.8), pos_hint={"x": 0.33, "y": 0.1})
+    whiteboard.add_widget(drawing)
 
     layout = BoxLayout(orientation='vertical')
     layout.add_widget(whiteboard)
 
-    button_save = Button(text='Save the sketch', size_hint=(0.2, 0.1), pos_hint={"x":0.4 ,"y": 0.3})
-    button_save.bind(on_press=lambda *args:manager.switch_to(window_story, direction='down'))
-    layout.add_widget(button_save)
+
+    layout_buttons = BoxLayout(orientation='horizontal', size_hint=(0.4, 0.1), pos_hint={"x":0.3 ,"y": 0.3})
+    button_save = Button(text='Save the sketch')
+    button_save.bind(on_press=lambda *args:save_function())
+    button_clear = Button(text='Clear the sketch')
+    button_clear.bind(on_press=lambda *args:drawing.canvas.clear())
+    layout_buttons.add_widget(button_save)
+    layout_buttons.add_widget(button_clear)
+    layout.add_widget(layout_buttons)
 
     final_layout = FloatLayout()
     final_layout.add_widget(background)
