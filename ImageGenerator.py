@@ -15,13 +15,30 @@ PATH_SKETCH = "Sketches/sketch.png"
 
 
 def sketch_2_image(init_prompt, positive_prompt, negative_prompt, strength, steps_slider_image):
+    print("Loading models...")
+    controlnet = ControlNetModel.from_pretrained("diffusers/controlnet-canny-sdxl-1.0", torch_dtype=torch.float16)
+    print("Controlnet loaded")
+
+    vae = AutoencoderKL.from_pretrained("madebyollin/sdxl-vae-fp16-fix", torch_dtype=torch.float16)
+    print("VAE loaded")
+
+    pipe = StableDiffusionXLControlNetPipeline.from_pretrained("stabilityai/stable-diffusion-xl-base-1.0", controlnet=controlnet, vae=vae, torch_dtype=torch.float16)
+    pipe.enable_model_cpu_offload()
+    print("Stable diffusion pipeline loaded")
+
+    pipe_refiner = StableDiffusionXLImg2ImgPipeline.from_pretrained("stabilityai/stable-diffusion-xl-refiner-1.0", torch_dtype=torch.float16, variant="fp16", use_safetensors=True)
+    pipe_refiner.to("cuda")
+    print("Stable diffusion refiner pipeline loaded")
+
+
     prompt = str(init_prompt) + str(positive_prompt)
     print('prompt', prompt)
     negative_prompt = str(negative_prompt)
     print('negative_prompt', negative_prompt)
-    image = cv2.imread(PATH_SKETCH)
     controlnet_conditioning_scale = 0.5  # recommended for good generalization
-    
+
+    image = cv2.imread(PATH_SKETCH)
+    image = cv2.resize(image, (512, 512))
     image = np.array(image)
     image = cv2.Canny(image, 100, 200)
     image = image[:, :, None]
@@ -29,22 +46,35 @@ def sketch_2_image(init_prompt, positive_prompt, negative_prompt, strength, step
     canny_image = Image.fromarray(image)
     image = pipe(prompt, controlnet_conditioning_scale=controlnet_conditioning_scale, image=canny_image, num_inference_steps=steps_slider_image).images[0]
     image = pipe_refiner(prompt, image=image, negative_prompt=negative_prompt, strength=strength).images[0]
-    #image.save("tmp/img.png")
     return image
 
-def describe_img(blip2, processor, image, tokens_max_lenght=100):
+def describe_img(image, tokens_max_lenght=50):
+    print("Loading models...")
+    blip2_processor = Blip2Processor.from_pretrained("Salesforce/blip2-opt-2.7b")
+    print("Blip2 processor loaded")
+
+    blip2 = Blip2ForConditionalGeneration.from_pretrained(
+        "Salesforce/blip2-opt-2.7b", load_in_8bit=True, device_map={"": 0}, torch_dtype=torch.float16)
+    print("Blip2 model loaded")
+
     prompt = f"Question: Describe the image for a kid with enough details. Answer:"
-    inputs = processor(images=image, text=prompt, return_tensors="pt").to(device="cuda", dtype=torch.bfloat16)
+    inputs = blip2_processor(images=image, text=prompt, return_tensors="pt").to(device="cuda", dtype=torch.bfloat16)
     inputs["max_new_tokens"] = tokens_max_lenght
     generated_ids = blip2.generate(**inputs)
-    generated_text = processor.batch_decode(generated_ids, skip_special_tokens=True)[0].strip()
+    generated_text = blip2_processor.batch_decode(generated_ids, skip_special_tokens=True)[0].strip()
     return generated_text
 
 
-def image2text(image, blip2, blip2_processor, mistral_pipe):
-    text = describe_img(blip2=blip2, processor=blip2_processor, image=image)
+def image2text(image):
+    text = describe_img(image)
     prompt = f"Context: The story should talk about {text}. Story: Once upon a time, "
-    return mistral_pipe(prompt, max_length=100)[0]["generated_text"]
+
+    print("Loading models...")
+    mistral_pipe = pipeline("text-generation", model="mistralai/Mistral-7B-v0.1", device="cuda")
+    print("Mistral model loaded")
+    text = mistral_pipe(prompt, max_length=100)[0]["generated_text"]
+    return text
+
 
 def gen_img_and_text(prompt, positive_prompt, negative_prompt, strength, steps_slider_image):
     image = sketch_2_image(prompt, positive_prompt, negative_prompt, strength, steps_slider_image)
@@ -112,18 +142,4 @@ with gr.Blocks() as demo:
 
 
 if __name__ == "__main__":
-    processor_blip2 = Blip2Processor.from_pretrained("Salesforce/blip2-opt-2.7b")
-    blip2 = Blip2ForConditionalGeneration.from_pretrained(
-        "Salesforce/blip2-opt-2.7b", load_in_8bit=True, device_map={"": 0}, torch_dtype=torch.float16
-    )
-    pipe_mistral = pipeline("text-generation", model="mistralai/Mistral-7B-v0.1", device = "cuda")
-
-    controlnet = ControlNetModel.from_pretrained("diffusers/controlnet-canny-sdxl-1.0", torch_dtype=torch.float16)
-    vae = AutoencoderKL.from_pretrained("madebyollin/sdxl-vae-fp16-fix", torch_dtype=torch.float16)
-    pipe = StableDiffusionXLControlNetPipeline.from_pretrained("stabilityai/stable-diffusion-xl-base-1.0", controlnet=controlnet, vae=vae, torch_dtype=torch.float16)
-    pipe.enable_model_cpu_offload()
-
-    pipe_refiner = StableDiffusionXLImg2ImgPipeline.from_pretrained("stabilityai/stable-diffusion-xl-refiner-1.0", torch_dtype=torch.float16, variant="fp16", use_safetensors=True)
-    pipe_refiner.to("cuda")
-
     demo.launch(share=True)

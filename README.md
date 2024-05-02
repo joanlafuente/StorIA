@@ -1,7 +1,8 @@
   
 # Story-Generation
+![Sketh2Image](https://github.com/joanlafuente/Story-Generation/assets/126601914/fa8ecb83-d1f4-49b1-bc03-2debf560e3d4)
 
-  
+
 ## Project overview
 
 <div align="justify">  
