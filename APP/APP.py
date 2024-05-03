@@ -310,10 +310,13 @@ class MenuApp(App):
         manager = ScreenManager()
         app_box.add_widget(manager)
 
+        app_box.add_widget(manager)
+
         main_window = Screen(name='main')
         window_story = Screen(name='Story generator')
         window_story2 = Screen(name='Story generator')
         window_drawing = Screen(name='Drawing')
+        window_visualizer = Screen(name='Visualizer')
         window_visualizer = Screen(name='Visualizer')
 
         main_window.add_widget(create_layout_menu())
@@ -323,6 +326,7 @@ class MenuApp(App):
         manager.add_widget(window_story)
         manager.add_widget(window_story2)
         manager.add_widget(window_drawing)
+        manager.add_widget(window_visualizer)
         manager.add_widget(window_visualizer)
 
         return app_box
