@@ -35,23 +35,26 @@ class Home(FloatLayout):
     def when_pressed(self):
         manager.switch_to(main_window, direction='down')
 
-def save_function():
-    drawing.export_to_png('tmp.png')
+def save_function(curr_book, curr_page, window2return=0):
+    drawing.export_to_png(f'./Books/{curr_book}/{curr_page}/tmp.png')
 
     white_img = np.array([[[255, 255, 255]]*500]*500, dtype=np.uint8)
-    img = cv2.imread('tmp.png', cv2.IMREAD_UNCHANGED)
+    img = cv2.imread(f'./Books/{curr_book}/{curr_page}/tmp.png', cv2.IMREAD_UNCHANGED)
     img = cv2.resize(img, (500, 500))
     mask = img[:, :, 3]
     img = img[:, :, 0:3]
     white_img[mask == 0] = img[mask == 0]
     white_img = cv2.bitwise_not(white_img)
-    cv2.imwrite('sketch.png', white_img)
+    cv2.imwrite(f'./Books/{curr_book}/{curr_page}/sketch.png', white_img)
     # Delete the temporary image
 
     # Update the sketch image
     sketch.reload()
-    manager.switch_to(window_story, direction='down')
-    os.remove('tmp.png')
+    if window2return == 0:
+        manager.switch_to(window_story, direction='down')
+    else:
+        manager.switch_to(window_story2, direction='down')
+    os.remove(f'./Books/{curr_book}/{curr_page}/tmp.png')
 
      
 class Drawing(FloatLayout):
@@ -73,7 +76,7 @@ class Drawing(FloatLayout):
                     Color(0, 0, 0)
                     touch.ud['line'] = Line(points=(touch.x, touch.y))
         
-def create_layout_draw():
+def create_layout_draw(curr_book, curr_page, window2return=0):
     background = Image(source='background_story_gen.jpg', fit_mode='fill')
     logo = Image(source='logo.png', size_hint=(0.25, 0.25), pos_hint={"x": 0.74, "y": 0.82})
     home = Home()
@@ -91,9 +94,13 @@ def create_layout_draw():
 
     layout_buttons = BoxLayout(orientation='horizontal', size_hint=(0.4, 0.1), pos_hint={"x":0.3 ,"y": 0.3})
     no_changes = Button(text='Return without changes')
-    no_changes.bind(on_press=lambda *args:manager.switch_to(window_story, direction='down'))
+    if window2return == 0:
+        no_changes.bind(on_press=lambda *args:manager.switch_to(window_story, direction='down'))
+    else:
+        no_changes.bind(on_press=lambda *args:manager.switch_to(window_story2, direction='down'))
+
     button_save = Button(text='Save the sketch')
-    button_save.bind(on_press=lambda *args:save_function())
+    button_save.bind(on_press=lambda *args:save_function(curr_book, curr_page, window2return=window2return))
     button_clear = Button(text='Clear the sketch')
     button_clear.bind(on_press=lambda *args:drawing.canvas.clear())
     layout_buttons.add_widget(button_save)
@@ -108,9 +115,36 @@ def create_layout_draw():
     final_layout.add_widget(home)
     return final_layout
 
+def next_page_function(curr_book, curr_page, window):
+    curr_page_int = int(curr_page)
+    if window == 0:
+        window_story2.clear_widgets()
+        window_story2.add_widget(create_layout_story_gen(curr_book, str(curr_page_int + 1), 1))
+        manager.switch_to(window_story2, direction='left')
+    elif window == 1:
+        window_story.clear_widgets()
+        window_story.add_widget(create_layout_story_gen(curr_book, str(curr_page_int + 1), 0))
+        manager.switch_to(window_story, direction='left')
+
+def prev_page_function(curr_book, curr_page, window):
+    curr_page_int = int(curr_page)
+    if curr_page_int <= 1:
+        return
+    
+    if window == 0:
+        window_story2.clear_widgets()
+        window_story2.add_widget(create_layout_story_gen(curr_book, str(curr_page_int - 1), 1))
+        manager.switch_to(window_story2, direction='right')
+    elif window == 1:
+        window_story.clear_widgets()
+        window_story.add_widget(create_layout_story_gen(curr_book, str(curr_page_int - 1), 0))
+        manager.switch_to(window_story, direction='right')
 
 
-def create_layout_story_gen():
+def create_layout_story_gen(curr_book, curr_page, window=0):
+    # Check if the folder exists, if not create it
+    if not os.path.exists(f'./Books/{curr_book}/{curr_page}'):
+        os.mkdir(f'./Books/{curr_book}/{curr_page}')
     global sketch
     background = Image(source='background_story_gen.jpg', fit_mode='fill')
     logo = Image(source='logo.png', size_hint=(0.25, 0.25), pos_hint={"x": 0.74, "y": 0.82})
@@ -119,23 +153,29 @@ def create_layout_story_gen():
     sketch_layout = BoxLayout(orientation='vertical')
     buttons_sketch = BoxLayout(orientation='horizontal', size_hint=(0.8, 0.1), pos_hint={"x": 0.1})
     button1 = Button(text='Update Sketch')
+
+    # Delete all widets on window_drawing 
+    window_drawing.clear_widgets()
+    window_drawing.add_widget(create_layout_draw(curr_book, curr_page, window2return=window))
+
     button1.bind(on_press=lambda *args:manager.switch_to(window_drawing, direction='up'))
     # Widget to input the text to condition the image generation, textinput.text is the text entered
     textinput = TextInput(text='Text to condition generation')
     buttons_sketch.add_widget(button1)
     buttons_sketch.add_widget(textinput)
 
-    sketch = Image(source='sketch.png', size_hint=(1, 1))
+    # If the sketch does not exist, create a white sketch of 500x500 pixels
+    if not os.path.exists(f'./Books/{curr_book}/{curr_page}/sketch.png'):
+        white_img = np.array([[[255, 255, 255]]*500]*500, dtype=np.uint8)
+        cv2.imwrite(f'./Books/{curr_book}/{curr_page}/sketch.png', white_img)
+
+    sketch = Image(source=f'./Books/{curr_book}/{curr_page}/sketch.png', size_hint=(1, 1))
 
     sketch_layout.add_widget(sketch)
     sketch_layout.add_widget(buttons_sketch)
 
     gen_Image_layout = BoxLayout(orientation='vertical')
     gen_Image = Image(source='gen_image.png', size_hint=(1, 1))
-    # Once a second, update the image
-    # def update_image(dt):
-    #     gen_Image.source = 'gen_image.png'
-    # Clock.schedule_interval(update_image, 1)
 
     genText = Button(text='Generate the text of this page',  size_hint=(0.8, 0.1), pos_hint={"x": 0.1})
     gen_Image_layout.add_widget(gen_Image)
@@ -144,12 +184,21 @@ def create_layout_story_gen():
     sketchAndGen = BoxLayout(orientation='horizontal', size_hint=(1, 0.8), pos_hint={"y": 0.15})
     sketchAndGen.add_widget(sketch_layout)
     sketchAndGen.add_widget(gen_Image_layout)
+
+    next_page = Button(text='->', size_hint=(0.05, 0.05), pos_hint={"x": 0.94, "y": 0.475})
+    next_page.bind(on_press=lambda *args:next_page_function(curr_book, curr_page, window))
+
+    prev_page = Button(text='<-', size_hint=(0.05, 0.05), pos_hint={"x": 0.01, "y": 0.475}) 
+    prev_page.bind(on_press=lambda *args:prev_page_function(curr_book, curr_page, window))
+
         
     layout = FloatLayout()
     layout.add_widget(background)
     layout.add_widget(sketchAndGen)
     layout.add_widget(logo)
     layout.add_widget(home)
+    layout.add_widget(next_page)
+    layout.add_widget(prev_page)
     return layout
 
 
@@ -160,6 +209,15 @@ def create_layout_menu():
     # Layout buttons
     layout_b = BoxLayout(orientation='horizontal', size_hint=(0.8, 0.2), pos_hint={"x": 0.1})
     button1 = Button(text='Create a new story')
+
+
+    # Look at folder Books to see the number of books and pages
+    # Create a new book with the number of books + 1
+    books = os.listdir('./Books')
+    curr_book = str(len(books) + 1)
+    os.mkdir(f'./Books/{curr_book}')
+
+    window_story.add_widget(create_layout_story_gen(curr_book, 1))
     button1.bind(on_press=lambda *args:manager.switch_to(window_story, direction='up'))
 
     button3 = Button(text='Collection of stories')
@@ -179,7 +237,10 @@ def create_layout_menu():
 
 class MenuApp(App):
     def build(self):
-        global manager, main_window, window_story, window_drawing
+        global manager, main_window, window_story, window_story2, window_drawing
+
+        if not os.path.exists('./Books'):
+            os.mkdir('./Books')
 
         app_box = BoxLayout(orientation='vertical')
         manager = ScreenManager()
@@ -187,14 +248,14 @@ class MenuApp(App):
             
         main_window = Screen(name='main')
         window_story = Screen(name='Story generator')
+        window_story2 = Screen(name='Story generator')
         window_drawing = Screen(name='Drawing')
 
         main_window.add_widget(create_layout_menu())
-        window_story.add_widget(create_layout_story_gen())
-        window_drawing.add_widget(create_layout_draw())
         
         manager.add_widget(main_window)
         manager.add_widget(window_story)
+        manager.add_widget(window_story2)
         manager.add_widget(window_drawing)
 
         return app_box
