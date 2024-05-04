@@ -40,7 +40,7 @@ class Home(FloatLayout):
     def when_pressed(self):
         manager.switch_to(main_window, direction='down')
 
-def save_function(curr_book, curr_page, window2return=0):
+def save_function(curr_book, curr_page):
     drawing.export_to_png(f'./Books/{curr_book}/{curr_page}/tmp.png')
 
     white_img = np.array([[[255, 255, 255]]*500]*500, dtype=np.uint8)
@@ -55,10 +55,7 @@ def save_function(curr_book, curr_page, window2return=0):
 
     # Update the sketch image
     sketch.reload()
-    if window2return == 0:
-        manager.switch_to(window_story, direction='down')
-    else:
-        manager.switch_to(window_story2, direction='down')
+    manager.switch_to(window_story, direction='down')
     os.remove(f'./Books/{curr_book}/{curr_page}/tmp.png')
 
      
@@ -81,7 +78,7 @@ class Drawing(FloatLayout):
                     Color(0, 0, 0)
                     touch.ud['line'] = Line(points=(touch.x, touch.y))
         
-def create_layout_draw(curr_book, curr_page, window2return=0):
+def create_layout_draw(curr_book, curr_page):
     background = Image(source='background_story_gen.jpg', fit_mode='fill')
     logo = Image(source='logo.png', size_hint=(0.25, 0.25), pos_hint={"x": 0.74, "y": 0.82})
     home = Home()
@@ -99,13 +96,12 @@ def create_layout_draw(curr_book, curr_page, window2return=0):
     
     layout_buttons = BoxLayout(orientation='horizontal', size_hint=(0.35, 0.1), pos_hint={"x":0.325 ,"y": 0.3})
     no_changes = Button(text='No changes', font_name='DownloadedFont', font_size=22)
-    if window2return == 0:
-        no_changes.bind(on_press=lambda *args:manager.switch_to(window_story, direction='down'))
-    else:
-        no_changes.bind(on_press=lambda *args:manager.switch_to(window_story2, direction='down'))
+
+    no_changes.bind(on_press=lambda *args:manager.switch_to(window_story, direction='down'))
+
 
     button_save = Button(text='Save', font_name='DownloadedFont', font_size=22)
-    button_save.bind(on_press=lambda *args:save_function(curr_book, curr_page, window2return=window2return))
+    button_save.bind(on_press=lambda *args:save_function(curr_book, curr_page))
     button_clear = Button(text='Clear', font_name='DownloadedFont', font_size=22)
     button_clear.bind(on_press=lambda *args:drawing.canvas.clear())
     layout_buttons.add_widget(button_save)
@@ -120,33 +116,23 @@ def create_layout_draw(curr_book, curr_page, window2return=0):
     final_layout.add_widget(home)
     return final_layout
 
-def next_page_function(curr_book, curr_page, window):
+def next_page_function(curr_book, curr_page):
     curr_page_int = int(curr_page)
-    if window == 0:
-        window_story2.clear_widgets()
-        window_story2.add_widget(create_layout_story_gen(curr_book, str(curr_page_int + 1), 1))
-        manager.switch_to(window_story2, direction='left')
-    elif window == 1:
-        window_story.clear_widgets()
-        window_story.add_widget(create_layout_story_gen(curr_book, str(curr_page_int + 1), 0))
-        manager.switch_to(window_story, direction='left')
+    window_story.clear_widgets()
+    window_story.add_widget(create_layout_story_gen(curr_book, str(curr_page_int + 1)))
+    manager.switch_to(window_story, direction='left')
 
-def prev_page_function(curr_book, curr_page, window):
+def prev_page_function(curr_book, curr_page):
     curr_page_int = int(curr_page)
     if curr_page_int > 1:
         new_page = curr_page_int - 1
     
-    if window == 0:
-        window_story2.clear_widgets()
-        window_story2.add_widget(create_layout_story_gen(curr_book, str(new_page), 1))
-        manager.switch_to(window_story2, direction='right')
-    elif window == 1:
-        window_story.clear_widgets()
-        window_story.add_widget(create_layout_story_gen(curr_book, str(new_page), 0))
-        manager.switch_to(window_story, direction='right')
+    window_story.clear_widgets()
+    window_story.add_widget(create_layout_story_gen(curr_book, str(new_page)))
+    manager.switch_to(window_story, direction='right')
 
 
-def create_layout_story_gen(curr_book, curr_page, window=0):
+def create_layout_story_gen(curr_book, curr_page):
     # Check if the folder exists, if not create it
     if not os.path.exists(f'./Books/{curr_book}/{curr_page}'):
         os.mkdir(f'./Books/{curr_book}/{curr_page}')
@@ -174,7 +160,7 @@ def create_layout_story_gen(curr_book, curr_page, window=0):
 
     # Delete all widets on window_drawing 
     window_drawing.clear_widgets()
-    window_drawing.add_widget(create_layout_draw(curr_book, curr_page, window2return=window))
+    window_drawing.add_widget(create_layout_draw(curr_book, curr_page))
 
     button1.bind(on_press=lambda *args:manager.switch_to(window_drawing, direction='up'))
     # Widget to input the text to condition the image generation, textinput.text is the text entered
@@ -211,11 +197,11 @@ def create_layout_story_gen(curr_book, curr_page, window=0):
     layout.add_widget(home)
 
     next_page = Button(text='->', size_hint=(0.05, 0.05), pos_hint={"x": 0.94, "y": 0.475})
-    next_page.bind(on_press=lambda *args:next_page_function(curr_book, curr_page, window))
+    next_page.bind(on_press=lambda *args:next_page_function(curr_book, curr_page))
 
     if int(curr_page) > 1:
         prev_page = Button(text='<-', size_hint=(0.05, 0.05), pos_hint={"x": 0.01, "y": 0.475}) 
-        prev_page.bind(on_press=lambda *args:prev_page_function(curr_book, curr_page, window))
+        prev_page.bind(on_press=lambda *args:prev_page_function(curr_book, curr_page))
         layout.add_widget(prev_page)
 
         
@@ -332,7 +318,7 @@ def edit_book(book):
     pages = sorted(pages, key=lambda x: int(x))
     window_story.clear_widgets()
     for page in pages:
-        window_story.add_widget(create_layout_story_gen(book, 1, window=0))
+        window_story.add_widget(create_layout_story_gen(book, 1))
     manager.switch_to(window_story, direction='up')
 
 def vis_book(book):
@@ -382,7 +368,7 @@ def create_layout_collection():
 
 class MenuApp(App):
     def build(self):
-        global manager, main_window, window_story, window_story2, window_drawing, window_visualizer, window_collection
+        global manager, main_window, window_story, window_drawing, window_visualizer, window_collection
 
         if not os.path.exists('./Books'):
             os.mkdir('./Books')
@@ -393,7 +379,6 @@ class MenuApp(App):
 
         main_window = Screen(name='main')
         window_story = Screen(name='Story generator')
-        window_story2 = Screen(name='Story generator')
         window_drawing = Screen(name='Drawing')
         window_visualizer = Screen(name='Visualizer')
         window_collection = Screen(name='Collection')
@@ -403,7 +388,6 @@ class MenuApp(App):
 
         manager.add_widget(main_window)
         manager.add_widget(window_story)
-        manager.add_widget(window_story2)
         manager.add_widget(window_drawing)
         manager.add_widget(window_visualizer)
         manager.add_widget(window_collection)
