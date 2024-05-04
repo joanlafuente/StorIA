@@ -1,6 +1,7 @@
 import kivy
 from kivy.app import App
 from kivy.uix.label import Label
+from kivy.core.text import LabelBase
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.image import Image
 from kivy.uix.button import Button
@@ -12,6 +13,7 @@ from kivy.uix.relativelayout import RelativeLayout
 from kivy.uix.widget import Widget
 from kivy.graphics import Color, Line
 from kivy.clock import Clock
+from kivy.uix.scrollview import ScrollView
 import os
 import numpy as np
 
@@ -19,6 +21,9 @@ import cv2
 
 # Set a white background
 Window.clearcolor = (1, 1, 1, 1)
+
+LabelBase.register(name='DownloadedFont', 
+                   fn_regular='benton-sans-bold.ttf')
 
 class LogIN(FloatLayout):
     def __init__(self, **kwargs):
@@ -91,17 +96,17 @@ def create_layout_draw(curr_book, curr_page, window2return=0):
     layout = BoxLayout(orientation='vertical')
     layout.add_widget(whiteboard)
 
-
-    layout_buttons = BoxLayout(orientation='horizontal', size_hint=(0.4, 0.1), pos_hint={"x":0.3 ,"y": 0.3})
-    no_changes = Button(text='Return without changes')
+    
+    layout_buttons = BoxLayout(orientation='horizontal', size_hint=(0.35, 0.1), pos_hint={"x":0.325 ,"y": 0.3})
+    no_changes = Button(text='No changes', font_name='DownloadedFont', font_size=22)
     if window2return == 0:
         no_changes.bind(on_press=lambda *args:manager.switch_to(window_story, direction='down'))
     else:
         no_changes.bind(on_press=lambda *args:manager.switch_to(window_story2, direction='down'))
 
-    button_save = Button(text='Save the sketch')
+    button_save = Button(text='Save', font_name='DownloadedFont', font_size=22)
     button_save.bind(on_press=lambda *args:save_function(curr_book, curr_page, window2return=window2return))
-    button_clear = Button(text='Clear the sketch')
+    button_clear = Button(text='Clear', font_name='DownloadedFont', font_size=22)
     button_clear.bind(on_press=lambda *args:drawing.canvas.clear())
     layout_buttons.add_widget(button_save)
     layout_buttons.add_widget(no_changes)
@@ -128,16 +133,16 @@ def next_page_function(curr_book, curr_page, window):
 
 def prev_page_function(curr_book, curr_page, window):
     curr_page_int = int(curr_page)
-    if curr_page_int <= 1:
-        return
+    if curr_page_int > 1:
+        new_page = curr_page_int - 1
     
     if window == 0:
         window_story2.clear_widgets()
-        window_story2.add_widget(create_layout_story_gen(curr_book, str(curr_page_int - 1), 1))
+        window_story2.add_widget(create_layout_story_gen(curr_book, str(new_page), 1))
         manager.switch_to(window_story2, direction='right')
     elif window == 1:
         window_story.clear_widgets()
-        window_story.add_widget(create_layout_story_gen(curr_book, str(curr_page_int - 1), 0))
+        window_story.add_widget(create_layout_story_gen(curr_book, str(new_page), 0))
         manager.switch_to(window_story, direction='right')
 
 
@@ -145,14 +150,27 @@ def create_layout_story_gen(curr_book, curr_page, window=0):
     # Check if the folder exists, if not create it
     if not os.path.exists(f'./Books/{curr_book}/{curr_page}'):
         os.mkdir(f'./Books/{curr_book}/{curr_page}')
-    global sketch
+
+    # Add the current page and book to the layout in black color
+    book = Label(text=f'BOOK: {curr_book}',
+                pos_hint={"x": -0.4, "y": 0.443}, 
+                color=(0, 0, 0, 1),
+                font_name='DownloadedFont',
+                font_size=30)
+
+    page = Label(text=f'MODIFING PAGE {curr_page}',
+                        pos_hint={"y": 0.443}, 
+                        color=(0, 0, 0, 1),
+                        font_name='DownloadedFont',
+                        font_size=30)
+
     background = Image(source='background_story_gen.jpg', fit_mode='fill')
     logo = Image(source='logo.png', size_hint=(0.25, 0.25), pos_hint={"x": 0.74, "y": 0.82})
     home = Home()
 
     sketch_layout = BoxLayout(orientation='vertical')
     buttons_sketch = BoxLayout(orientation='horizontal', size_hint=(0.8, 0.1), pos_hint={"x": 0.1})
-    button1 = Button(text='Update Sketch')
+    button1 = Button(text='Update the skecth', font_name='DownloadedFont', font_size=22)
 
     # Delete all widets on window_drawing 
     window_drawing.clear_widgets()
@@ -160,7 +178,7 @@ def create_layout_story_gen(curr_book, curr_page, window=0):
 
     button1.bind(on_press=lambda *args:manager.switch_to(window_drawing, direction='up'))
     # Widget to input the text to condition the image generation, textinput.text is the text entered
-    textinput = TextInput(text='Text to condition generation')
+    textinput = TextInput(text='Text to condition image generation', font_name='DownloadedFont', font_size=17)
     buttons_sketch.add_widget(button1)
     buttons_sketch.add_widget(textinput)
 
@@ -169,6 +187,7 @@ def create_layout_story_gen(curr_book, curr_page, window=0):
         white_img = np.array([[[255, 255, 255]]*500]*500, dtype=np.uint8)
         cv2.imwrite(f'./Books/{curr_book}/{curr_page}/sketch.png', white_img)
 
+    global sketch
     sketch = Image(source=f'./Books/{curr_book}/{curr_page}/sketch.png', size_hint=(1, 1))
 
     sketch_layout.add_widget(sketch)
@@ -177,7 +196,7 @@ def create_layout_story_gen(curr_book, curr_page, window=0):
     gen_Image_layout = BoxLayout(orientation='vertical')
     gen_Image = Image(source='gen_image.png', size_hint=(1, 1))
 
-    genText = Button(text='Generate the text of this page',  size_hint=(0.8, 0.1), pos_hint={"x": 0.1})
+    genText = Button(text='Generate the text for this page',  size_hint=(0.8, 0.1), pos_hint={"x": 0.1}, font_name='DownloadedFont', font_size=22)
     gen_Image_layout.add_widget(gen_Image)
     gen_Image_layout.add_widget(genText)
 
@@ -185,30 +204,38 @@ def create_layout_story_gen(curr_book, curr_page, window=0):
     sketchAndGen.add_widget(sketch_layout)
     sketchAndGen.add_widget(gen_Image_layout)
 
-    next_page = Button(text='->', size_hint=(0.05, 0.05), pos_hint={"x": 0.94, "y": 0.475})
-    next_page.bind(on_press=lambda *args:next_page_function(curr_book, curr_page, window))
-
-    prev_page = Button(text='<-', size_hint=(0.05, 0.05), pos_hint={"x": 0.01, "y": 0.475}) 
-    prev_page.bind(on_press=lambda *args:prev_page_function(curr_book, curr_page, window))
-
-        
     layout = FloatLayout()
     layout.add_widget(background)
     layout.add_widget(sketchAndGen)
     layout.add_widget(logo)
     layout.add_widget(home)
+
+    next_page = Button(text='->', size_hint=(0.05, 0.05), pos_hint={"x": 0.94, "y": 0.475})
+    next_page.bind(on_press=lambda *args:next_page_function(curr_book, curr_page, window))
+
+    if int(curr_page) > 1:
+        prev_page = Button(text='<-', size_hint=(0.05, 0.05), pos_hint={"x": 0.01, "y": 0.475}) 
+        prev_page.bind(on_press=lambda *args:prev_page_function(curr_book, curr_page, window))
+        layout.add_widget(prev_page)
+
+        
     layout.add_widget(next_page)
-    layout.add_widget(prev_page)
+    layout.add_widget(book)
+    layout.add_widget(page)
     return layout
 
+def load_collection():
+    window_collection.clear_widgets()
+    window_collection.add_widget(create_layout_collection())
+    manager.switch_to(window_collection, direction='up')
 
 def create_layout_menu():
     background = Image(source='backgorund_menu.png', fit_mode='fill')
-    logo = Image(source='logo.png', pos_hint={"y": 0.15})
+    logo = Image(source='logo.png', pos_hint={"y": 0.1})
     
     # Layout buttons
     layout_b = BoxLayout(orientation='horizontal', size_hint=(0.8, 0.2), pos_hint={"x": 0.1})
-    button1 = Button(text='Create a new story')
+    button1 = Button(text='CREATE A NEW STORY', font_name='DownloadedFont', font_size=25)
 
 
     # Look at folder Books to see the number of books and pages
@@ -220,10 +247,11 @@ def create_layout_menu():
     window_story.add_widget(create_layout_story_gen(curr_book, 1))
     button1.bind(on_press=lambda *args:manager.switch_to(window_story, direction='up'))
 
-    button2 = Button(text='Visualize')
+    button2 = Button(text='VISUALIZE A STORY', font_name='DownloadedFont', font_size=25)
     button2.bind(on_press=lambda *args: manager.switch_to(window_visualizer, direction='up'))
 
-    button3 = Button(text='Collection of stories')
+    button3 = Button(text='COLLECTION OF STORIES', font_name='DownloadedFont', font_size=25)
+    button3.bind(on_press=lambda *args: load_collection())
     layout_b.add_widget(button1)
     layout_b.add_widget(button2)
     layout_b.add_widget(button3)     
@@ -240,7 +268,7 @@ def create_layout_menu():
 
 
 def create_layout_visualizer():
-    background = Image(source='background_visualizer.jpg', fit_mode='fill')
+    background = Image(source='background_story_gen.jpg', fit_mode='fill')
     logo = Image(source='logo.png', size_hint=(0.25, 0.25), pos_hint={"x": 0.74, "y": 0.82})
     home = Home()
 
@@ -299,9 +327,62 @@ def create_layout_visualizer():
 
     return layout
 
+def edit_book(book):
+    pages = os.listdir(f'./Books/{book}')
+    pages = sorted(pages, key=lambda x: int(x))
+    window_story.clear_widgets()
+    for page in pages:
+        window_story.add_widget(create_layout_story_gen(book, 1, window=0))
+    manager.switch_to(window_story, direction='up')
+
+def vis_book(book):
+    pass
+
+def create_layout_collection():
+    background = Image(source='backgorund_menu.png', fit_mode='fill')
+    logo = Image(source='logo.png', size_hint=(0.25, 0.25), pos_hint={"x": 0.74, "y": 0.82})
+    title = Label(text=f'STORY COLLECTION',
+                        pos_hint={"y": 0.443}, 
+                        color=(0, 0, 0, 1),
+                        font_name='DownloadedFont',
+                        font_size=30)
+    home = Home()
+
+    books = os.listdir('./Books')
+    books = sorted(books, key=lambda x: int(x))
+    books_layouts = BoxLayout(orientation='vertical', size_hint_y=None, spacing=3)
+    books_layouts.bind(minimum_height=books_layouts.setter('height'))
+
+    for book in books:
+        num_pages = len(os.listdir(f'./Books/{book}'))
+        book_layout = BoxLayout(orientation='horizontal', size_hint=(0.8, None), height=50)
+        book_layout.add_widget(Label(text=f'Book {book}, number of pages {num_pages}', 
+                                     font_name='DownloadedFont', font_size=22,
+                                     color=(0, 0, 0, 1)))
+        book_layout.add_widget(Button(text='Edit', font_name='DownloadedFont', 
+                                      font_size=22, size_hint=(0.5, 1),
+                                      on_press=lambda *args, book=book: edit_book(book)))
+        book_layout.add_widget(Button(text='Visualize', font_name='DownloadedFont', 
+                                      font_size=22, size_hint=(0.5, 1),
+                                      on_press=lambda *args, book=book: vis_book(book)))
+        
+        books_layouts.add_widget(book_layout)
+
+    books_layout = ScrollView(size_hint=(1, 0.8), pos_hint={"x":0.05, "y": 0.06})
+    books_layout.add_widget(books_layouts)
+
+    layout = FloatLayout()
+    layout.add_widget(background)
+    layout.add_widget(logo)
+    layout.add_widget(home)
+    layout.add_widget(books_layout)
+    layout.add_widget(title)
+    return layout
+
+
 class MenuApp(App):
     def build(self):
-        global manager, main_window, window_story, window_story2, window_drawing, window_visualizer
+        global manager, main_window, window_story, window_story2, window_drawing, window_visualizer, window_collection
 
         if not os.path.exists('./Books'):
             os.mkdir('./Books')
@@ -310,14 +391,12 @@ class MenuApp(App):
         manager = ScreenManager()
         app_box.add_widget(manager)
 
-        app_box.add_widget(manager)
-
         main_window = Screen(name='main')
         window_story = Screen(name='Story generator')
         window_story2 = Screen(name='Story generator')
         window_drawing = Screen(name='Drawing')
         window_visualizer = Screen(name='Visualizer')
-        window_visualizer = Screen(name='Visualizer')
+        window_collection = Screen(name='Collection')
 
         main_window.add_widget(create_layout_menu())
         window_visualizer.add_widget(create_layout_visualizer())
@@ -327,7 +406,7 @@ class MenuApp(App):
         manager.add_widget(window_story2)
         manager.add_widget(window_drawing)
         manager.add_widget(window_visualizer)
-        manager.add_widget(window_visualizer)
+        manager.add_widget(window_collection)
 
         return app_box
 
