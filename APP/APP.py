@@ -272,6 +272,11 @@ def load_collection():
     window_collection.add_widget(create_layout_collection())
     manager.switch_to(window_collection, direction='up')
 
+def create_story(curr_book):
+    window_story.clear_widgets()
+    window_story.add_widget(create_layout_story_gen(curr_book, '1'))
+    manager.switch_to(window_story, direction='up')
+
 def create_layout_menu():
     background = Image(source='backgorund_menu.png', fit_mode='fill')
     logo = Image(source='logo.png', pos_hint={"y": 0.1})
@@ -287,8 +292,7 @@ def create_layout_menu():
     curr_book = str(len(books) + 1)
     os.mkdir(f'./Books/{curr_book}')
 
-    window_story.add_widget(create_layout_story_gen(curr_book, 1))
-    button1.bind(on_press=lambda *args:manager.switch_to(window_story, direction='up'))
+    button1.bind(on_press=lambda *args:create_story(curr_book))
 
     button2 = Button(text='VISUALIZE A STORY', font_name='DownloadedFont', font_size=25)
     button2.bind(on_press=lambda *args: manager.switch_to(window_visualizer, direction='up'))
@@ -457,8 +461,6 @@ class MenuApp(App):
 if __name__ == '__main__':
     """
     Thinks that we might change:
-    - Now we open the applicatio and we instantly create a new book, we might want to change this to do it only 
-    when the user wants to create a new book
     - Put all the images of the desing of the app in folders
     """
     app = MenuApp()
