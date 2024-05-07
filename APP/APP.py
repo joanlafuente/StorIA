@@ -161,10 +161,10 @@ def sketch2img(curr_book, curr_page):
     print("\n\ncurrent book:", curr_book, curr_page)
     send_image(f'./Books/{curr_book}/{curr_page}/sketch.png', 
            '/hhome/nlp2_g05/social_inovation/Sketches', 
-           '158.109.75.52', 
-           '55022',
-           'nlp2_g05', 
-           'nlp_07')
+           HOSTNAME, 
+           PORT,
+           USERNAME, 
+           PASWORD)
     
     time.sleep(1)
     
