@@ -3,6 +3,7 @@ from paramiko import SSHClient
 from scp import SCPClient
 from pathlib import Path
 from argparse import ArgumentParser
+import time
 
 def receive_image(remote_image_path, local_path, hostname, port, username, password):
     # Initialize SSH client
@@ -45,7 +46,6 @@ def send_image(local_image_path, remote_path, hostname, port, username, password
 
     # Close the SSH connection
     ssh.close()
-
 
 
 import paramiko
@@ -103,11 +103,20 @@ if __name__ == '__main__':
     # Receive the images from the text2Sketch model
     #path, filename = args()  # This is the filename that needs to match with the one in the cluster folder
     filename = "sketch.png"
+    generated_img = 'image.png'
     
-    execute_ssh_command(HOSTNAME, PORT, USERNAME, PASWORD, "./hhome/nlp2_g05/social_inovation/bash_scripts.sh"
-sbatch: error: Unable to open file hhome/nlp2_g05/social_inovation/runner_t5.shrunner_t5.sh")
+    send_image('/home/nbiescas/Desktop/Story-Generation-1/Sketches/sketch.png', 
+           '/hhome/nlp2_g05/social_inovation/Sketches', 
+           '158.109.75.52', 
+           '55022',
+           'nlp2_g05', 
+           'nlp_07')
+    time.sleep(1)
     
-    receive_image(remote_image_path = FOLDER_GETTING_FROM_CLUSTER / filename,
+    execute_ssh_command(HOSTNAME, PORT, USERNAME, PASWORD, "bash /hhome/nlp2_g05/social_inovation/bash_script.sh")
+    
+    time.sleep(1)
+    receive_image(remote_image_path = FOLDER_GETTING_FROM_CLUSTER / generated_img,
                   local_path        = FOLDER_SAVING_TO_LOCAL,
                   hostname          = HOSTNAME,
                   port              = PORT,

@@ -5,7 +5,6 @@ import numpy as np
 import torch
 import cv2
 from PIL import Image
-import gradio as gr
 import os 
 
 os.environ["GRADIO_TEMP_DIR"] = r"C:\Users\Joan\Desktop\Story-Generation\Out"

@@ -1,3 +1,4 @@
 # To ignore the sketches and gen imgs
 APP/Books
 Books
+APP/.config

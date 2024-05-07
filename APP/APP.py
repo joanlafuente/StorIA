@@ -17,7 +17,31 @@ from kivy.uix.scrollview import ScrollView
 import os
 import numpy as np
 
+import time
 import cv2
+from pathlib import Path
+from utils_cluster import receive_image, send_image, execute_ssh_command
+import dotenv
+dotenv.load_dotenv()
+
+HOSTNAME = os.getenv('HOSTNAME')
+PORT     = os.getenv('PORT')
+USERNAME = os.getenv('USERNAME')
+PASWORD  = os.getenv('PASWORD')
+
+import dotenv
+#Read a the .env file
+dotenv.load_dotenv()
+
+
+# Folder from which we are going to send the images of the wacom output to the cluster
+FOLDER_SENDING_FROM_LOCAL = Path('Outputs/Wacom/Png_final_results')
+
+# Folder in which we are going to save the image of the text2Sketch model in the cluster
+FOLDER_SAVING_TO_LOCAL = Path('Outputs/Sketch2image')
+
+# Folder from which we are going to retrieve the images from the text2Sketch model
+FOLDER_GETTING_FROM_CLUSTER = Path('/hhome/nlp2_g05/social_inovation/Generated_imgs')
 
 # Set a white background
 Window.clearcolor = (1, 1, 1, 1)
@@ -134,10 +158,30 @@ def prev_page_function(curr_book, curr_page):
 
 def sketch2img(curr_book, curr_page):
     # Load the sketch
-    sketch = cv2.imread(f'./Books/{curr_book}/{curr_page}/sketch.png')
+    print("\n\ncurrent book:", curr_book, curr_page)
+    send_image(f'./Books/{curr_book}/{curr_page}/sketch.png', 
+           '/hhome/nlp2_g05/social_inovation/Sketches', 
+           '158.109.75.52', 
+           '55022',
+           'nlp2_g05', 
+           'nlp_07')
     
+    time.sleep(1)
+    
+    execute_ssh_command(HOSTNAME, PORT, USERNAME, PASWORD, "bash /hhome/nlp2_g05/social_inovation/bash_script.sh")
+    
+    time.sleep(1)
+    receive_image(remote_image_path = FOLDER_GETTING_FROM_CLUSTER / "image.png",
+                  local_path        = f'./Books/{curr_book}/{curr_page}/image.png',
+                  hostname          = HOSTNAME,
+                  port              = PORT,
+                  username          = USERNAME,
+                  password          = PASWORD)
+    
+    time.sleep(1)
+    print("\n\nAttribute ", gen_Image.source)
+    gen_Image.reload()
     # Call the function that will generate the image
-    pass
 
 def create_layout_story_gen(curr_book, curr_page):
     # Check if the folder exists, if not create it
@@ -187,8 +231,10 @@ def create_layout_story_gen(curr_book, curr_page):
     sketch_layout.add_widget(buttons_sketch)
 
     gen_Image_layout = BoxLayout(orientation='vertical')
-    gen_Image = Image(source='gen_image.png', size_hint=(1, 1))
-
+    
+    global gen_Image
+    gen_Image = Image(source=f'/home/nbiescas/Desktop/Story-Generation-1/Books/{curr_book}/{curr_page}/image.png', size_hint=(1, 1))
+    
     genText = Button(text='Generate the text for this page',  size_hint=(0.8, 0.1), pos_hint={"x": 0.1}, font_name='DownloadedFont', font_size=22)
     gen_Image_layout.add_widget(gen_Image)
     gen_Image_layout.add_widget(genText)
