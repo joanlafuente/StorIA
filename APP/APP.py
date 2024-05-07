@@ -79,6 +79,7 @@ class Drawing(FloatLayout):
                     touch.ud['line'] = Line(points=(touch.x, touch.y))
         
 def create_layout_draw(curr_book, curr_page):
+    print("Window drawing", flush=True)
     background = Image(source='background_story_gen.jpg', fit_mode='fill')
     logo = Image(source='logo.png', size_hint=(0.25, 0.25), pos_hint={"x": 0.74, "y": 0.82})
     home = Home()
@@ -131,6 +132,12 @@ def prev_page_function(curr_book, curr_page):
     window_story.add_widget(create_layout_story_gen(curr_book, str(new_page)))
     manager.switch_to(window_story, direction='right')
 
+def sketch2img(curr_book, curr_page):
+    # Load the sketch
+    sketch = cv2.imread(f'./Books/{curr_book}/{curr_page}/sketch.png')
+    
+    # Call the function that will generate the image
+    pass
 
 def create_layout_story_gen(curr_book, curr_page):
     # Check if the folder exists, if not create it
@@ -167,7 +174,7 @@ def create_layout_story_gen(curr_book, curr_page):
     textinput = TextInput(text='Text to condition image generation', font_name='DownloadedFont', font_size=17)
     buttons_sketch.add_widget(button1)
     buttons_sketch.add_widget(textinput)
-
+    
     # If the sketch does not exist, create a white sketch of 500x500 pixels
     if not os.path.exists(f'./Books/{curr_book}/{curr_page}/sketch.png'):
         white_img = np.array([[[255, 255, 255]]*500]*500, dtype=np.uint8)
@@ -199,12 +206,16 @@ def create_layout_story_gen(curr_book, curr_page):
     next_page = Button(text='->', size_hint=(0.05, 0.05), pos_hint={"x": 0.94, "y": 0.475})
     next_page.bind(on_press=lambda *args:next_page_function(curr_book, curr_page))
 
+    imgGeneration_button = Button(text='Generate\nImage', size_hint=(0.1, 0.1), pos_hint={"x": 0.45, "y": 0.5}, font_name='DownloadedFont', font_size=22)
+    imgGeneration_button.bind(on_press=lambda *args:sketch2img(curr_book, curr_page))
+
+    
     if int(curr_page) > 1:
         prev_page = Button(text='<-', size_hint=(0.05, 0.05), pos_hint={"x": 0.01, "y": 0.475}) 
         prev_page.bind(on_press=lambda *args:prev_page_function(curr_book, curr_page))
         layout.add_widget(prev_page)
 
-        
+    layout.add_widget(imgGeneration_button)
     layout.add_widget(next_page)
     layout.add_widget(book)
     layout.add_widget(page)
@@ -398,6 +409,12 @@ class MenuApp(App):
 
 
 if __name__ == '__main__':
+    """
+    Thinks that we might change:
+    - Now we open the applicatio and we instantly create a new book, we might want to change this to do it only 
+    when the user wants to create a new book
+    - Put all the images of the desing of the app in folders
+    """
     app = MenuApp()
     app.run()
 
