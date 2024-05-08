@@ -3,3 +3,4 @@ APP/Books
 Books
 APP/.config
 *.pyc
+APP/.env
