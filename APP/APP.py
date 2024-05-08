@@ -26,7 +26,7 @@ dotenv.load_dotenv()
 
 HOSTNAME = os.getenv('HOSTNAME')
 PORT     = os.getenv('PORT')
-USERNAME = os.getenv('USERNAME')
+USERNAME = os.getenv('USERNAME_CLUSTER')
 PASWORD  = os.getenv('PASWORD')
 
 import dotenv
@@ -34,15 +34,9 @@ import dotenv
 dotenv.load_dotenv()
 
 
-# Folder from which we are going to send the images of the wacom output to the cluster
-FOLDER_SENDING_FROM_LOCAL = Path('Outputs/Wacom/Png_final_results')
-
-# Folder in which we are going to save the image of the text2Sketch model in the cluster
-FOLDER_SAVING_TO_LOCAL = Path('Outputs/Sketch2image')
-
 # Folder from which we are going to retrieve the images from the text2Sketch model
-FOLDER_GETTING_FROM_CLUSTER = Path('/hhome/nlp2_g05/social_inovation/Generated_imgs')
-
+#FOLDER_GETTING_FROM_CLUSTER = Path('/hhome/nlp2_g05/social_inovation/Generated_imgs')
+FOLDER_GETTING_FROM_CLUSTER = '/hhome/nlp2_g05/social_inovation/Generated_imgs'
 # Set a white background
 Window.clearcolor = (1, 1, 1, 1)
 
@@ -168,10 +162,10 @@ def sketch2img(curr_book, curr_page):
     
     time.sleep(1)
     
-    execute_ssh_command(HOSTNAME, PORT, USERNAME, PASWORD, "bash /hhome/nlp2_g05/social_inovation/bash_script.sh")
+    execute_ssh_command(HOSTNAME, PORT, USERNAME, PASWORD, f"bash /hhome/nlp2_g05/social_inovation/bash_script.sh {textinput.text}")
     
     time.sleep(1)
-    receive_image(remote_image_path = FOLDER_GETTING_FROM_CLUSTER / "image.png",
+    receive_image(remote_image_path = FOLDER_GETTING_FROM_CLUSTER + "/image.png",
                   local_path        = f'./Books/{curr_book}/{curr_page}/image.png',
                   hostname          = HOSTNAME,
                   port              = PORT,
@@ -215,6 +209,7 @@ def create_layout_story_gen(curr_book, curr_page):
 
     button1.bind(on_press=lambda *args:manager.switch_to(window_drawing, direction='up'))
     # Widget to input the text to condition the image generation, textinput.text is the text entered
+    global textinput
     textinput = TextInput(text='Text to condition image generation', font_name='DownloadedFont', font_size=17)
     buttons_sketch.add_widget(button1)
     buttons_sketch.add_widget(textinput)
