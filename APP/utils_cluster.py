@@ -48,8 +48,6 @@ def send_image(local_image_path, remote_path, hostname, port, username, password
     ssh.close()
 
 
-import paramiko
-
 def execute_ssh_command(host, port, username, password, command):
     # Initialize the SSH client
     client = paramiko.SSHClient()
