@@ -19,6 +19,7 @@ import numpy as np
 
 import time
 import cv2
+import os
 from pathlib import Path
 from utils_cluster import receive_image, send_image, execute_ssh_command
 import dotenv
@@ -33,11 +34,13 @@ import dotenv
 #Read a the .env file
 dotenv.load_dotenv()
 
+# Path 
+BOOKS = r'C:\Users\34644\Desktop\Second Semester\Social Inovation\Story-Generation\Books'
 
 # Folder from which we are going to retrieve the images from the text2Sketch model
 #FOLDER_GETTING_FROM_CLUSTER = Path('/hhome/nlp2_g05/social_inovation/Generated_imgs')
 FOLDER_GETTING_FROM_CLUSTER = '/hhome/nlp2_g05/social_inovation/Generated_imgs'
-# Set a white background
+FOLDER_GETTING_FROM_CLUSTER_TXT = '/hhome/nlp2_g05/social_inovation/Generated_txt'# Set a white background
 Window.clearcolor = (1, 1, 1, 1)
 
 LabelBase.register(name='DownloadedFont', 
@@ -150,6 +153,40 @@ def prev_page_function(curr_book, curr_page):
     window_story.add_widget(create_layout_story_gen(curr_book, str(new_page)))
     manager.switch_to(window_story, direction='right')
 
+def text2history(curr_book, curr_page, amount_pages=5):  
+    book_dir = BOOKS + f'/{curr_book}'
+    sorted_dirs = sorted(os.listdir(book_dir), key=lambda x: int(x))
+    books_paths = [os.path.join(book_dir, book) for book in sorted_dirs[-amount_pages:]]
+    # Load the texts in each folder
+    prompt = ""
+    if int(curr_page) == 1:
+        prompt = "Story: Once upon a time, "
+    else:
+        for book in books_paths:
+            file = os.path.join(book, 'text.txt')
+            with open(file, 'r') as f:
+                text = f.read()
+                if not text.startswith("This page has no generated text yet."):
+                    prompt += text
+                else:
+                    pass
+    if prompt != "":
+        execute_ssh_command(HOSTNAME, PORT, USERNAME, PASWORD, f"bash /hhome/nlp2_g05/social_inovation/text2history.sh '{prompt}'") 
+        receive_image(remote_image_path = FOLDER_GETTING_FROM_CLUSTER_TXT + "/text.txt",
+                  local_path        = f'./Books/{curr_book}/{curr_page}/text.txt',
+                  hostname          = HOSTNAME,
+                  port              = PORT,
+                  username          = USERNAME,
+                  password          = PASWORD)
+    else:
+        print("No text to generate the image")
+
+def call_cluster(curr_book, curr_page):
+    print("Entering hereee aaa \n")
+    sketch2img(curr_book, curr_page)
+    text2history(curr_book, curr_page)
+    
+    
 def sketch2img(curr_book, curr_page):
     # Load the sketch
     print("\n\ncurrent book:", curr_book, curr_page)
@@ -162,7 +199,7 @@ def sketch2img(curr_book, curr_page):
     
     time.sleep(1)
     
-    execute_ssh_command(HOSTNAME, PORT, USERNAME, PASWORD, f"bash /hhome/nlp2_g05/social_inovation/bash_script.sh {textinput.text}")
+    execute_ssh_command(HOSTNAME, PORT, USERNAME, PASWORD, f"bash /hhome/nlp2_g05/social_inovation/bash_script.sh '{textinput.text}'")
     
     time.sleep(1)
     receive_image(remote_image_path = FOLDER_GETTING_FROM_CLUSTER + "/image.png",
@@ -218,7 +255,10 @@ def create_layout_story_gen(curr_book, curr_page):
     if not os.path.exists(f'./Books/{curr_book}/{curr_page}/sketch.png'):
         white_img = np.array([[[255, 255, 255]]*500]*500, dtype=np.uint8)
         cv2.imwrite(f'./Books/{curr_book}/{curr_page}/sketch.png', white_img)
-
+    if not os.path.exists(f'./Books/{curr_book}/{curr_page}/text.txt'):
+        with open(f'./Books/{curr_book}/{curr_page}/text.txt', 'w') as f:
+            f.write('This page has no generated text yet.')
+    
     global sketch
     sketch = Image(source=f'./Books/{curr_book}/{curr_page}/sketch.png', size_hint=(1, 1))
 
@@ -251,8 +291,8 @@ def create_layout_story_gen(curr_book, curr_page):
     next_page = Button(text='->', size_hint=(0.05, 0.05), pos_hint={"x": 0.94, "y": 0.475})
     next_page.bind(on_press=lambda *args:next_page_function(curr_book, curr_page))
 
-    imgGeneration_button = Button(text='Generate\nImage', size_hint=(0.1, 0.1), pos_hint={"x": 0.45, "y": 0.5}, font_name='DownloadedFont', font_size=22)
-    imgGeneration_button.bind(on_press=lambda *args:sketch2img(curr_book, curr_page))
+    imgGeneration_button = Button(text='Generate', size_hint=(0.1, 0.1), pos_hint={"x": 0.45, "y": 0.5}, font_name='DownloadedFont', font_size=22)
+    imgGeneration_button.bind(on_press=lambda *args:call_cluster(curr_book, curr_page))
 
     
     if int(curr_page) > 1:
@@ -487,8 +527,6 @@ if __name__ == '__main__':
     """
     app = MenuApp()
     app.run()
-
-
 
 
     
