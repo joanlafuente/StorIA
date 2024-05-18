@@ -34,8 +34,8 @@ import dotenv
 #Read a the .env file
 dotenv.load_dotenv()
 
-# Path 
-BOOKS = r'C:\Users\34644\Desktop\Second Semester\Social Inovation\Story-Generation\Books'
+# Get the entire path to ./Books folder
+BOOKS = r"C:\Users\Joan\Desktop\Uni\3r Curs\2nd Semestre\Social innovation\Story-Generation\Books"
 
 # Folder from which we are going to retrieve the images from the text2Sketch model
 #FOLDER_GETTING_FROM_CLUSTER = Path('/hhome/nlp2_g05/social_inovation/Generated_imgs')
@@ -156,7 +156,7 @@ def prev_page_function(curr_book, curr_page):
 def text2history(curr_book, curr_page, amount_pages=5):  
     book_dir = BOOKS + f'/{curr_book}'
     sorted_dirs = sorted(os.listdir(book_dir), key=lambda x: int(x))
-    books_paths = [os.path.join(book_dir, book) for book in sorted_dirs[-amount_pages:]]
+    books_paths = [os.path.join(book_dir, book) for book in sorted_dirs[int(curr_page)-1-amount_pages:int(curr_page)-1]]
     # Load the texts in each folder
     prompt = ""
     if int(curr_page) == 1:
@@ -171,7 +171,9 @@ def text2history(curr_book, curr_page, amount_pages=5):
                 else:
                     pass
     if prompt != "":
-        execute_ssh_command(HOSTNAME, PORT, USERNAME, PASWORD, f"bash /hhome/nlp2_g05/social_inovation/text2history.sh '{prompt}'") 
+        with open(f'./Books/{curr_book}/{curr_page}/Text2ConditionGen.txt', 'r') as f:
+            textinput_text = f.read()
+        execute_ssh_command(HOSTNAME, PORT, USERNAME, PASWORD, f"bash /hhome/nlp2_g05/social_inovation/text2history.sh '{prompt}' '|{textinput_text}'") 
         receive_image(remote_image_path = FOLDER_GETTING_FROM_CLUSTER_TXT + "/text.txt",
                   local_path        = f'./Books/{curr_book}/{curr_page}/text.txt',
                   hostname          = HOSTNAME,
@@ -198,6 +200,9 @@ def sketch2img(curr_book, curr_page):
            PASWORD)
     
     time.sleep(1)
+
+    with open(f'./Books/{curr_book}/{curr_page}/Text2ConditionGen.txt', 'w') as f:
+        f.write(textinput.text)
     
     execute_ssh_command(HOSTNAME, PORT, USERNAME, PASWORD, f"bash /hhome/nlp2_g05/social_inovation/bash_script.sh '{textinput.text}'")
     
@@ -247,7 +252,12 @@ def create_layout_story_gen(curr_book, curr_page):
     button1.bind(on_press=lambda *args:manager.switch_to(window_drawing, direction='up'))
     # Widget to input the text to condition the image generation, textinput.text is the text entered
     global textinput
-    textinput = TextInput(text='Text to condition image generation', font_name='DownloadedFont', font_size=17)
+    if os.path.exists(f'./Books/{curr_book}/{curr_page}/Text2ConditionGen.txt'):
+        textinput_text = open(f'./Books/{curr_book}/{curr_page}/Text2ConditionGen.txt', 'r').read()
+    else:
+        textinput_text = 'Text to condition image generation'
+
+    textinput = TextInput(text=textinput_text, font_name='DownloadedFont', font_size=17)
     buttons_sketch.add_widget(button1)
     buttons_sketch.add_widget(textinput)
     
@@ -274,9 +284,10 @@ def create_layout_story_gen(curr_book, curr_page):
 
     gen_Image = Image(source=f'./Books/{curr_book}/{curr_page}/image.png', size_hint=(1, 1))
     
-    genText = Button(text='Generate the text for this page',  size_hint=(0.8, 0.1), pos_hint={"x": 0.1}, font_name='DownloadedFont', font_size=22)
+    genButton = Button(text='Generate the image and text for this page',  size_hint=(0.8, 0.1), pos_hint={"x": 0.1}, font_name='DownloadedFont', font_size=22)
+    genButton.bind(on_press=lambda *args:call_cluster(curr_book, curr_page))
     gen_Image_layout.add_widget(gen_Image)
-    gen_Image_layout.add_widget(genText)
+    gen_Image_layout.add_widget(genButton)
 
     sketchAndGen = BoxLayout(orientation='horizontal', size_hint=(1, 0.8), pos_hint={"y": 0.15})
     sketchAndGen.add_widget(sketch_layout)
@@ -291,16 +302,12 @@ def create_layout_story_gen(curr_book, curr_page):
     next_page = Button(text='->', size_hint=(0.05, 0.05), pos_hint={"x": 0.94, "y": 0.475})
     next_page.bind(on_press=lambda *args:next_page_function(curr_book, curr_page))
 
-    imgGeneration_button = Button(text='Generate', size_hint=(0.1, 0.1), pos_hint={"x": 0.45, "y": 0.5}, font_name='DownloadedFont', font_size=22)
-    imgGeneration_button.bind(on_press=lambda *args:call_cluster(curr_book, curr_page))
-
     
     if int(curr_page) > 1:
         prev_page = Button(text='<-', size_hint=(0.05, 0.05), pos_hint={"x": 0.01, "y": 0.475}) 
         prev_page.bind(on_press=lambda *args:prev_page_function(curr_book, curr_page))
         layout.add_widget(prev_page)
 
-    layout.add_widget(imgGeneration_button)
     layout.add_widget(next_page)
     layout.add_widget(book)
     layout.add_widget(page)
