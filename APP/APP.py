@@ -138,6 +138,38 @@ def create_layout_draw(curr_book, curr_page):
     final_layout.add_widget(home)
     return final_layout
 
+def create_layout_edit_text(curr_book, curr_page):
+    layout = FloatLayout()
+    background = Image(source='background_story_gen.jpg', fit_mode='fill')
+    logo = Image(source='logo.png', size_hint=(0.25, 0.25), pos_hint={"x": 0.74, "y": 0.82})
+    home = Home()
+
+    if not os.path.exists(f'./Books/{curr_book}/{curr_page}/text.txt'):
+        with open(f'./Books/{curr_book}/{curr_page}/text.txt', 'w') as f:
+            f.write('')
+    
+    with open(f'./Books/{curr_book}/{curr_page}/text.txt', 'r') as f:
+        text = f.read()
+
+    global text_page_editor
+    text_page_editor = TextInput(text=text, font_name='DownloadedFont', font_size=20, size_hint=(0.6, 0.6), pos_hint={"x": 0.2, "y": 0.25})
+
+    return_editor = Button(text='Return to the story generator', font_name='DownloadedFont', font_size=22, size_hint=(0.6, 0.1), pos_hint={"x": 0.2, "y": 0.05})
+    return_editor.bind(on_press=lambda *args:return_to_story_generator(curr_book, curr_page))
+
+    layout.add_widget(background)
+    layout.add_widget(logo)
+    layout.add_widget(text_page_editor)
+    layout.add_widget(return_editor)
+    layout.add_widget(home)
+
+    return layout
+
+def return_to_story_generator(curr_book, curr_page):
+    with open(f'./Books/{curr_book}/{curr_page}/text.txt', 'w') as f:
+        f.write(text_page_editor.text)
+    manager.switch_to(window_story, direction='down')
+
 def next_page_function(curr_book, curr_page):
     curr_page_int = int(curr_page)
     window_story.clear_widgets()
@@ -152,6 +184,11 @@ def prev_page_function(curr_book, curr_page):
     window_story.clear_widgets()
     window_story.add_widget(create_layout_story_gen(curr_book, str(new_page)))
     manager.switch_to(window_story, direction='right')
+
+def edit_text(curr_book, curr_page):
+    window_text_editor.clear_widgets()
+    window_text_editor.add_widget(create_layout_edit_text(curr_book, curr_page))
+    manager.switch_to(window_text_editor, direction='up')
 
 def text2history(curr_book, curr_page, amount_pages=5):  
     book_dir = BOOKS + f'/{curr_book}'
@@ -284,10 +321,19 @@ def create_layout_story_gen(curr_book, curr_page):
 
     gen_Image = Image(source=f'./Books/{curr_book}/{curr_page}/image.png', size_hint=(1, 1))
     
-    genButton = Button(text='Generate the image and text for this page',  size_hint=(0.8, 0.1), pos_hint={"x": 0.1}, font_name='DownloadedFont', font_size=22)
+    image_buttons = BoxLayout(orientation='horizontal', size_hint=(0.8, 0.1), pos_hint={"x": 0.1})
+
+    genButton = Button(text='Generate the image and text', font_name='DownloadedFont', font_size=22)
     genButton.bind(on_press=lambda *args:call_cluster(curr_book, curr_page))
+    text_editor_button = Button(text='Edit the text', font_name='DownloadedFont', font_size=22)
+    text_editor_button.bind(on_press=lambda *args:edit_text(curr_book, curr_page))
+
+    image_buttons.add_widget(genButton)
+    image_buttons.add_widget(text_editor_button)
+
+
     gen_Image_layout.add_widget(gen_Image)
-    gen_Image_layout.add_widget(genButton)
+    gen_Image_layout.add_widget(image_buttons)
 
     sketchAndGen = BoxLayout(orientation='horizontal', size_hint=(1, 0.8), pos_hint={"y": 0.15})
     sketchAndGen.add_widget(sketch_layout)
@@ -499,7 +545,7 @@ def create_layout_collection():
 
 class MenuApp(App):
     def build(self):
-        global manager, main_window, window_story, window_drawing, window_visualizer, window_collection
+        global manager, main_window, window_story, window_drawing, window_visualizer, window_collection, window_text_editor
 
         if not os.path.exists('./Books'):
             os.mkdir('./Books')
@@ -513,6 +559,7 @@ class MenuApp(App):
         window_drawing = Screen(name='Drawing')
         window_visualizer = Screen(name='Visualizer')
         window_collection = Screen(name='Collection')
+        window_text_editor = Screen(name='Text editor')
 
         main_window.add_widget(create_layout_menu())
 
@@ -521,6 +568,7 @@ class MenuApp(App):
         manager.add_widget(window_drawing)
         manager.add_widget(window_visualizer)
         manager.add_widget(window_collection)
+        manager.add_widget(window_text_editor)
 
         return app_box
 
