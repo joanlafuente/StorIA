@@ -14,6 +14,8 @@ from kivy.uix.widget import Widget
 from kivy.graphics import Color, Line
 from kivy.clock import Clock
 from kivy.uix.scrollview import ScrollView
+from kivy.uix.checkbox import CheckBox
+from kivy.uix.switch import Switch
 import os
 import numpy as np
 from blend_modes import darken_only
@@ -26,6 +28,9 @@ from pathlib import Path
 from myapp.utils_cluster import receive_image, send_image, execute_ssh_command
 import dotenv
 dotenv.load_dotenv()
+
+global loged_in
+loged_in = False
 
 HOSTNAME = os.getenv('HOSTNAME')
 PORT     = os.getenv('PORT')
@@ -48,17 +53,14 @@ Window.clearcolor = (1, 1, 1, 1)
 LabelBase.register(name='DownloadedFont', 
                    fn_regular='./myapp/assets/benton-sans-bold.ttf')
 
-class LogIN(FloatLayout):
+class PasswordInput(TextInput):
     def __init__(self, **kwargs):
-        super(LogIN, self).__init__(**kwargs)
+        super(PasswordInput, self).__init__(**kwargs)
+        self.password = True
         
-        login = Button(size_hint=(0.1, 0.1), pos_hint={"x": 0.90, "y": 0.88}, background_normal = './myapp/assets/user.png')
-        login.bind(on_press=lambda *args:manager.switch_to(main_window, direction='down'))
-        self.add_widget(login)
-
-    def when_pressed(self):
-        print("Login button pressed")
-
+    # write *** instead of the text
+    def _get_text(self):
+        return '*' * len(self.text)
 
 class Home(FloatLayout):
     def __init__(self, **kwargs):
@@ -108,6 +110,54 @@ class Drawing(FloatLayout):
                 with self.canvas:
                     Color(0, 0, 0)
                     touch.ud['line'] = Line(points=(touch.x, touch.y))
+
+class Colors(FloatLayout):
+    def __init__(self, **kwargs):
+        super(Colors, self).__init__(**kwargs)
+
+        self.colors = [(0, 0, 0), (1, 0, 0), (0, 1, 0), (0, 0, 1), (1, 1, 0), (1, 0, 1), (0, 1, 1)]
+        self.current_color = self.colors[0]
+
+        self.color_buttons = []
+        for i, color in enumerate(self.colors):
+            button = Button(size_hint=(0.3, 0.1), pos_hint={"x": 0.1, "y": 0.1 + i*0.1}, background_color=color)
+            button.bind(on_press=lambda *args:self.change_color(color))
+            self.color_buttons.append(button)
+            self.add_widget(button)
+
+    def change_color(self, color):
+        drawing.canvas.add(Color(*color))
+        self.current_color = color
+        
+class brush_size(FloatLayout):
+    def __init__(self, **kwargs):
+        super(brush_size, self).__init__(**kwargs)
+        self.brush_sizes = [1, 2]
+        self.current_size = self.brush_sizes[0]
+
+        imagen = Image(source='./myapp/assets/brush_size.png', size_hint=(0.3, 0.7), pos_hint={"x": 0.1, "y": 0})
+        self.add_widget(imagen)
+
+        for i in range(5): 
+            button = Button(size_hint=(0.1, 0.1), pos_hint={"x": 0.1 + i*0.1, "y": 0.1}, background_color=(0, 0, 0, 0))
+            button.bind(on_press=lambda *args:self.change_size(i+1))
+            self.add_widget(button)
+
+        # factor = 0.02
+        # self.size_buttons = []
+        # prev_y = 0.1
+        # prev_x = 0.15 + (factor*5/2)*0.3
+        # for i, size in enumerate(self.brush_sizes):
+        #     print(factor*size, factor*size, prev_x, prev_y)
+        #     button = Button(size_hint=(0.1 + factor*size, 0.1 +factor*size), pos_hint={"x": prev_x, "y": prev_y}, background_normal = './myapp/assets/brush.png')
+        #     button.bind(on_press=lambda *args:self.change_size(size))
+        #     self.size_buttons.append(button)
+        #     self.add_widget(button)
+        #     prev_y += size*factor + 0.05
+        #     prev_x -= ((0.1 + (size*factor))/2)*0.3
+
+    def change_size(self, size):
+        drawing.canvas.add(Line(width=size))
         
 def create_layout_draw(curr_book, curr_page):
     print("Window drawing", flush=True)
@@ -122,14 +172,20 @@ def create_layout_draw(curr_book, curr_page):
     drawing = Drawing(size_hint=(0.39, 0.8), pos_hint={"x": 0.33, "y": 0.1})
     whiteboard.add_widget(drawing)
 
+    colors = Colors(size_hint=(0.3, 0.5), pos_hint={"x": 0.07, "y": 0.20})
+    whiteboard.add_widget(colors)
+    
+    brush = brush_size(size_hint=(0.3, 0.5), pos_hint={"x": 0.07, "y": 0.55})
+    whiteboard.add_widget(brush)
+    
+    no_changes = Button(text='x', font_name='DownloadedFont', font_size=22, size_hint=(0.1, 0.1), pos_hint={"x": 0.8, "y": 0.8})
+    no_changes.bind(on_press=lambda *args:manager.switch_to(window_story, direction='down'))
+    whiteboard.add_widget(no_changes)
+
     layout = BoxLayout(orientation='vertical')
     layout.add_widget(whiteboard)
-
     
     layout_buttons = BoxLayout(orientation='horizontal', size_hint=(0.35, 0.1), pos_hint={"x":0.325 ,"y": 0.3})
-    no_changes = Button(text='No changes', font_name='DownloadedFont', font_size=22)
-
-    no_changes.bind(on_press=lambda *args:manager.switch_to(window_story, direction='down'))
 
 
     button_save = Button(text='Save', font_name='DownloadedFont', font_size=22)
@@ -137,7 +193,6 @@ def create_layout_draw(curr_book, curr_page):
     button_clear = Button(text='Clear', font_name='DownloadedFont', font_size=22)
     button_clear.bind(on_press=lambda *args:drawing.canvas.clear())
     layout_buttons.add_widget(button_save)
-    layout_buttons.add_widget(no_changes)
     layout_buttons.add_widget(button_clear)
     layout.add_widget(layout_buttons)
 
@@ -239,51 +294,6 @@ def text2history(curr_book, curr_page, amount_pages=5):
     else:
         print("No text to generate the image")
 
-# def text2history(curr_book, curr_page, amount_pages=5):  
-#     book_dir = BOOKS + '/' + curr_book + '/' + curr_page
-#     if not os.path.exists(book_dir):
-#         os.makedirs(book_dir)
-    
-#     with open(f'./Books/{curr_book}/{curr_page}/text.txt', 'w') as f:
-#         f.write(text_page_editor.text)
-
-#     # Add your server-side script and paths
-#     user = USERNAME
-#     host = HOSTNAME
-#     password = PASWORD
-#     remote_file_path = '/hhome/nlp2_g05/social_inovation/story_generator.py'
-#     remote_python = '/hhome/nlp2_g05/.venv/social_inovation/bin/python'
-#     text_file = f'./Books/{curr_book}/{curr_page}/text.txt'
-#     remote_output_dir = f'/hhome/nlp2_g05/social_inovation/Generated_imgs'
-#     remote_output_txt = f'/hhome/nlp2_g05/social_inovation/Generated_txt'
-
-#     # Use threading to avoid blocking the UI
-#     thread = threading.Thread(target=run_story_generator,
-#                               args=(user, host, password, remote_python, remote_file_path, text_file, remote_output_dir, remote_output_txt, book_dir, curr_book, curr_page))
-#     thread.start()
-
-# def run_story_generator(user, host, password, remote_python, remote_file_path, text_file, remote_output_dir, remote_output_txt, book_dir, curr_book, curr_page):
-#     command = f'{remote_python} {remote_file_path} --input {text_file} --output {remote_output_dir} --output_txt {remote_output_txt}'
-#     print(f'Executing command: {command}', flush=True)
-
-#     execute_ssh_command(user, host, password, command)
-
-#     images = receive_image(user, host, password, remote_output_dir, book_dir)
-#     text = receive_text(user, host, password, remote_output_txt, book_dir)
-
-#     print('Received images and text.', flush=True)
-    
-#     for i, image in enumerate(images):
-#         local_path = f'./Books/{curr_book}/{curr_page}/img_{i}.png'
-#         with open(local_path, 'wb') as f:
-#             f.write(image)
-
-#     with open(f'./Books/{curr_book}/{curr_page}/generated_text.txt', 'w') as f:
-#         f.write(text)
-
-#     manager.switch_to(window_story, direction='down')
-
-
 def crop2lastpoint(file):
     with open(file, 'r') as f:
         text = f.read()
@@ -301,14 +311,13 @@ def thread_function(curr_book, curr_page):
     
 
 def call_cluster(curr_book, curr_page):
-    loading_layout.opacity = 1
+    # loading_layout.opacity = 1
 
     def cluster_thread():
-        try:
-            thread_function(curr_book, curr_page)
-        finally:
+        thread_function(curr_book, curr_page)
+        # finally:
             # Hide loading elements
-            loading_layout.opacity = 0
+            # loading_layout.opacity = 0
 
     threading.Thread(target=cluster_thread).start()
     
@@ -385,11 +394,9 @@ def create_layout_story_gen(curr_book, curr_page):
     global textinput
     if os.path.exists(f'./Books/{curr_book}/{curr_page}/Text2ConditionGen.txt'):
         textinput_text = open(f'./Books/{curr_book}/{curr_page}/Text2ConditionGen.txt', 'r').read()
-        textinput = TextInput(text=textinput_text, font_name='DownloadedFont', font_size=17, foreground_color=(0, 0, 0, 1))
+        textinput = TextInput(text=textinput_text, hint_text='What did you draw?', font_name='DownloadedFont', font_size=17, foreground_color=(0, 0, 0, 1))
     else:
-        textinput_text = 'What did you draw?'
-        textinput = TextInput(text=textinput_text, font_name='DownloadedFont', font_size=17, foreground_color=(0, 0, 0, 0.3))
-        textinput.bind(focus=lambda *args: erase_text())
+        textinput = TextInput(hint_text='What did you draw?', font_name='DownloadedFont', font_size=17, foreground_color=(0, 0, 0, 1))
     
     buttons_sketch.add_widget(button1)
     buttons_sketch.add_widget(textinput)
@@ -418,13 +425,13 @@ def create_layout_story_gen(curr_book, curr_page):
     gen_Image = Image(source=f'./Books/{curr_book}/{curr_page}/image.png', size_hint=(1, 1))
     
     # Create loading elements
-    global loading_layout
-    loading_circle = Image(source='./myapp/assets/loading_circle2.gif', size_hint=(None, None), size=(50, 50))
-    loading_label = Label(text='Generating...', font_name='DownloadedFont', font_size=22, color=(0, 0, 0, 1))
-    loading_layout = BoxLayout(orientation='vertical', size_hint=(None, None), size=(100, 100), pos_hint={"center_x": 0.5, "center_y": 0.5})
-    loading_layout.add_widget(loading_circle)
-    loading_layout.add_widget(loading_label)
-    loading_layout.opacity = 0  # Initially hide the loading elements
+    # global loading_layout
+    # loading_circle = Image(source='./myapp/assets/loading_circle2.gif', size_hint=(None, None), size=(50, 50))
+    # loading_label = Label(text='Generating...', font_name='DownloadedFont', font_size=22, color=(0, 0, 0, 1))
+    # loading_layout = BoxLayout(orientation='vertical', size_hint=(None, None), size=(100, 100), pos_hint={"center_x": 0.5, "center_y": 0.5})
+    # loading_layout.add_widget(loading_circle)
+    # loading_layout.add_widget(loading_label)
+    # loading_layout.opacity = 0  # Initially hide the loading elements
     
     image_buttons = BoxLayout(orientation='horizontal', size_hint=(0.8, 0.1), pos_hint={"x": 0.1})
 
@@ -464,10 +471,6 @@ def create_layout_story_gen(curr_book, curr_page):
     layout.add_widget(page)
     return layout
 
-def erase_text():
-    if textinput.text == 'What did you draw?':
-        textinput.text = ''
-
 def load_collection():
     window_collection.clear_widgets()
     window_collection.add_widget(create_layout_collection())
@@ -490,7 +493,8 @@ def create_story():
     home = Home()
     
     title_label = Label(text="Enter the book title:", font_name='DownloadedFont', font_size=25, pos_hint={"x": 0.2, "y": 0.6}, size_hint=(0.6, 0.1))
-    title_input = TextInput(font_name='DownloadedFont', font_size=20, size_hint=(0.6, 0.1), pos_hint={"x": 0.2, "y": 0.5})
+    
+    title_input = TextInput(font_name='DownloadedFont', font_size=30, size_hint=(0.6, 0.1), pos_hint={"x": 0.2, "y": 0.5}, halign='center', padding_y=[15, 15])
     save_button = Button(text="Save Title", font_name='DownloadedFont', font_size=25, size_hint=(0.6, 0.1), pos_hint={"x": 0.2, "y": 0.4})
     save_button.bind(on_press=save_title)
 
@@ -525,12 +529,13 @@ def create_layout_menu():
     # layout_b.add_widget(button2)
     layout_b.add_widget(button3)     
     
-    login = LogIN()
+    global login_button
+    login_button = LogIN()
     
     # Join all layouts
     layout = FloatLayout()
     layout.add_widget(background)
-    layout.add_widget(login)
+    layout.add_widget(login_button)
     layout.add_widget(logo)
     layout.add_widget(layout_b)
     return layout
@@ -744,11 +749,89 @@ def create_merged_image(book, page):
 
     return blended_img_raw
 
+class LogIN(FloatLayout):
+    def __init__(self, **kwargs):
+        super(LogIN, self).__init__(**kwargs)
+        
+        login = Button(size_hint=(0.1, 0.13), pos_hint={"x": 0.90, "y": 0.88}, background_normal = './myapp/assets/user.png', text = 'Log In                    ', font_name='DownloadedFont', font_size=20, color=(0, 0, 0, 1))
+        login.bind(on_press=lambda *args:go2login())
+        self.add_widget(login)
+            
+    def update(self, loged_in):
+        self.clear_widgets()
+        if not loged_in:
+            login = Button(size_hint=(0.1, 0.13), pos_hint={"x": 0.90, "y": 0.88}, background_normal = './myapp/assets/user.png', text = 'Log In                    ', font_name='DownloadedFont', font_size=20, color=(0, 0, 0, 1))
+            login.bind(on_press=lambda *args:go2login())
+            self.add_widget(login)
+        else: 
+            config = Button(size_hint=(0.08, 0.08), pos_hint={"x": 0.90, "y": 0.88}, background_normal = './myapp/assets/config.png', text = 'Config                           ', font_name='DownloadedFont', font_size=20, color=(0, 0, 0, 1))
+            config.bind(on_press=lambda *args:go2config())
+            self.add_widget(config)
+        
+def go2login(): 
+    window_login.clear_widgets()
+    window_login.add_widget(create_login_layout())
+    manager.switch_to(window_login, direction='down')
+    
+def go2config():
+    window_config.clear_widgets()
+    window_config.add_widget(create_config_layout())
+    manager.switch_to(window_config, direction='down')
 
+def create_login_layout():
+    background = Image(source='./myapp/assets/backgorund_menu.png', fit_mode='fill')
+    logo = Image(source='./myapp/assets/logo.png', size_hint=(0.25, 0.25), pos_hint={"x": 0.74, "y": 0.82})
+    home = Home()
+    
+    layout = FloatLayout()
+    layout.add_widget(background)
+    layout.add_widget(logo)
+    layout.add_widget(home)
+    
+    username = TextInput(hint_text='Username', font_name='DownloadedFont', font_size=20, size_hint=(0.3, 0.1), pos_hint={"x": 0.35, "y": 0.70}, halign='center', padding_y=[15, 15])
+    # password = TextInput(hint_text='Password', font_name='DownloadedFont', font_size=20, size_hint=(0.3, 0.1), pos_hint={"x": 0.35, "y": 0.47}, halign='center', padding_y=[15, 15])
+    password = PasswordInput(hint_text='Password', font_name='DownloadedFont', font_size=20, size_hint=(0.3, 0.1), pos_hint={"x": 0.35, "y": 0.58}, halign='center', padding_y=[15, 15])
+    repeat_password = PasswordInput(hint_text='Repeat Password', font_name='DownloadedFont', font_size=20, size_hint=(0.3, 0.1), pos_hint={"x": 0.35, "y": 0.46}, halign='center', padding_y=[15, 15])
+    age = TextInput(hint_text='Age', font_name='DownloadedFont', font_size=20, size_hint=(0.3, 0.1), pos_hint={"x": 0.35, "y": 0.34}, halign='center', padding_y=[15, 15])
+    login_button = Button(text='Login', font_name='DownloadedFont', font_size=20, size_hint=(0.3, 0.1), pos_hint={"x": 0.35, "y": 0.22})
+    login_button.bind(on_press=lambda *args:actions_when_login())
+    
+    layout.add_widget(username)
+    layout.add_widget(password)
+    layout.add_widget(repeat_password)
+    layout.add_widget(age)
+    layout.add_widget(login_button)
+    
+    return layout
+
+def actions_when_login():
+    global login_button
+    login_button.update(loged_in=True)
+    manager.switch_to(main_window, direction='down')
+    
+
+def create_config_layout():
+    background = Image(source='./myapp/assets/backgorund_menu.png', fit_mode='fill')
+    logo = Image(source='./myapp/assets/logo.png', size_hint=(0.25, 0.25), pos_hint={"x": 0.74, "y": 0.82})
+    home = Home()
+    
+    layout = FloatLayout()
+    layout.add_widget(background)
+    layout.add_widget(logo)
+    layout.add_widget(home)
+    
+    # no se perque no s'afegeixen :/
+    label = Label(text='Allow explicit content', font_name='DownloadedFont', font_size=20, pos_hint={"x": 0.35, "y": 0.70})
+    switch = Switch(active=False, pos_hint={"x": 0.35, "y": 0.60})
+    
+    layout.add_widget(label)
+    layout.add_widget(switch)
+    
+    return layout
 
 class MenuApp(App):
     def build(self):
-        global manager, main_window, window_story, window_drawing, window_visualizer, window_collection, window_text_editor
+        global manager, main_window, window_story, window_drawing, window_visualizer, window_collection, window_text_editor, window_login, window_config
 
         if not os.path.exists('./Books'):
             os.mkdir('./Books')
@@ -763,6 +846,8 @@ class MenuApp(App):
         window_visualizer = Screen(name='Visualizer')
         window_collection = Screen(name='Collection')
         window_text_editor = Screen(name='Text editor')
+        window_login = Screen(name='Login window')
+        window_config = Screen(name='Config window')
 
         main_window.add_widget(create_layout_menu())
 
@@ -772,6 +857,8 @@ class MenuApp(App):
         manager.add_widget(window_visualizer)
         manager.add_widget(window_collection)
         manager.add_widget(window_text_editor)
+        manager.add_widget(window_login)
+        manager.add_widget(window_config)
 
         return app_box
 
