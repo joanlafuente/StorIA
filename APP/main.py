@@ -17,6 +17,7 @@ from kivy.uix.scrollview import ScrollView
 import os
 import numpy as np
 from blend_modes import darken_only
+import threading
 
 from PIL import Image as PILImage
 import time
@@ -83,7 +84,7 @@ def save_function(curr_book, curr_page):
     cv2.imwrite(f'./Books/{curr_book}/{curr_page}/sketch.png', white_img)
     # Delete the temporary image
 
-    # Update the sketch image
+    # Draw image
     sketch.reload()
     manager.switch_to(window_story, direction='down')
     os.remove(f'./Books/{curr_book}/{curr_page}/tmp.png')
@@ -161,7 +162,7 @@ def create_layout_edit_text(curr_book, curr_page):
         text = f.read()
 
     global text_page_editor
-    text_page_editor = TextInput(text=text, font_name='DownloadedFont', font_size=20, size_hint=(0.6, 0.6), pos_hint={"x": 0.2, "y": 0.25})
+    text_page_editor = TextInput(text=text, font_name='DownloadedFont', font_size=34, size_hint=(0.6, 0.6), pos_hint={"x": 0.2, "y": 0.25}, background_color=(0, 0, 0, 0), foreground_color=(0, 0, 0, 0.60), halign='center')
 
     return_editor = Button(text='Return to the story generator', font_name='DownloadedFont', font_size=22, size_hint=(0.6, 0.1), pos_hint={"x": 0.2, "y": 0.05})
     return_editor.bind(on_press=lambda *args:return_to_story_generator(curr_book, curr_page))
@@ -201,7 +202,12 @@ def edit_text(curr_book, curr_page):
 
 def text2history(curr_book, curr_page, amount_pages=5):  
     book_dir = BOOKS + f'/{curr_book}'
-    sorted_dirs = sorted(os.listdir(book_dir), key=lambda x: int(x))
+    list_books = os.listdir(book_dir)
+    try: 
+        list_books.remove('title.txt')
+    except:
+        pass
+    sorted_dirs = sorted(list_books, key=lambda x: int(x))
     books_paths = [os.path.join(book_dir, book) for book in sorted_dirs[int(curr_page)-1-amount_pages:int(curr_page)-1]]
     # Load the texts in each folder
     prompt = ""
@@ -227,13 +233,84 @@ def text2history(curr_book, curr_page, amount_pages=5):
                   port              = PORT,
                   username          = USERNAME,
                   password          = PASWORD)
+        
+        crop2lastpoint(f'./Books/{curr_book}/{curr_page}/text.txt')
+        
     else:
         print("No text to generate the image")
 
-def call_cluster(curr_book, curr_page):
-    print("Entering hereee aaa \n")
+# def text2history(curr_book, curr_page, amount_pages=5):  
+#     book_dir = BOOKS + '/' + curr_book + '/' + curr_page
+#     if not os.path.exists(book_dir):
+#         os.makedirs(book_dir)
+    
+#     with open(f'./Books/{curr_book}/{curr_page}/text.txt', 'w') as f:
+#         f.write(text_page_editor.text)
+
+#     # Add your server-side script and paths
+#     user = USERNAME
+#     host = HOSTNAME
+#     password = PASWORD
+#     remote_file_path = '/hhome/nlp2_g05/social_inovation/story_generator.py'
+#     remote_python = '/hhome/nlp2_g05/.venv/social_inovation/bin/python'
+#     text_file = f'./Books/{curr_book}/{curr_page}/text.txt'
+#     remote_output_dir = f'/hhome/nlp2_g05/social_inovation/Generated_imgs'
+#     remote_output_txt = f'/hhome/nlp2_g05/social_inovation/Generated_txt'
+
+#     # Use threading to avoid blocking the UI
+#     thread = threading.Thread(target=run_story_generator,
+#                               args=(user, host, password, remote_python, remote_file_path, text_file, remote_output_dir, remote_output_txt, book_dir, curr_book, curr_page))
+#     thread.start()
+
+# def run_story_generator(user, host, password, remote_python, remote_file_path, text_file, remote_output_dir, remote_output_txt, book_dir, curr_book, curr_page):
+#     command = f'{remote_python} {remote_file_path} --input {text_file} --output {remote_output_dir} --output_txt {remote_output_txt}'
+#     print(f'Executing command: {command}', flush=True)
+
+#     execute_ssh_command(user, host, password, command)
+
+#     images = receive_image(user, host, password, remote_output_dir, book_dir)
+#     text = receive_text(user, host, password, remote_output_txt, book_dir)
+
+#     print('Received images and text.', flush=True)
+    
+#     for i, image in enumerate(images):
+#         local_path = f'./Books/{curr_book}/{curr_page}/img_{i}.png'
+#         with open(local_path, 'wb') as f:
+#             f.write(image)
+
+#     with open(f'./Books/{curr_book}/{curr_page}/generated_text.txt', 'w') as f:
+#         f.write(text)
+
+#     manager.switch_to(window_story, direction='down')
+
+
+def crop2lastpoint(file):
+    with open(file, 'r') as f:
+        text = f.read()
+    text = text.split(".")
+    if len(text) > 1:
+        text = ".".join(text[:-1]) + "."
+    
+    with open(file, 'w') as f:
+        f.write(text)
+    
+
+def thread_function(curr_book, curr_page):
     sketch2img(curr_book, curr_page)
     text2history(curr_book, curr_page)
+    
+
+def call_cluster(curr_book, curr_page):
+    loading_layout.opacity = 1
+
+    def cluster_thread():
+        try:
+            thread_function(curr_book, curr_page)
+        finally:
+            # Hide loading elements
+            loading_layout.opacity = 0
+
+    threading.Thread(target=cluster_thread).start()
     
     
 def sketch2img(curr_book, curr_page):
@@ -297,7 +374,7 @@ def create_layout_story_gen(curr_book, curr_page):
 
     sketch_layout = BoxLayout(orientation='vertical')
     buttons_sketch = BoxLayout(orientation='horizontal', size_hint=(0.8, 0.1), pos_hint={"x": 0.1})
-    button1 = Button(text='Update the sketch', font_name='DownloadedFont', font_size=22)
+    button1 = Button(text='Draw', font_name='DownloadedFont', font_size=22)
 
     # Delete all widets on window_drawing 
     window_drawing.clear_widgets()
@@ -308,10 +385,12 @@ def create_layout_story_gen(curr_book, curr_page):
     global textinput
     if os.path.exists(f'./Books/{curr_book}/{curr_page}/Text2ConditionGen.txt'):
         textinput_text = open(f'./Books/{curr_book}/{curr_page}/Text2ConditionGen.txt', 'r').read()
+        textinput = TextInput(text=textinput_text, font_name='DownloadedFont', font_size=17, foreground_color=(0, 0, 0, 1))
     else:
         textinput_text = 'What did you draw?'
-
-    textinput = TextInput(text=textinput_text, font_name='DownloadedFont', font_size=17)
+        textinput = TextInput(text=textinput_text, font_name='DownloadedFont', font_size=17, foreground_color=(0, 0, 0, 0.3))
+        textinput.bind(focus=lambda *args: erase_text())
+    
     buttons_sketch.add_widget(button1)
     buttons_sketch.add_widget(textinput)
     
@@ -337,6 +416,15 @@ def create_layout_story_gen(curr_book, curr_page):
         cv2.imwrite(f'./Books/{curr_book}/{curr_page}/image.png', white_img)
 
     gen_Image = Image(source=f'./Books/{curr_book}/{curr_page}/image.png', size_hint=(1, 1))
+    
+    # Create loading elements
+    global loading_layout
+    loading_circle = Image(source='./myapp/assets/loading_circle2.gif', size_hint=(None, None), size=(50, 50))
+    loading_label = Label(text='Generating...', font_name='DownloadedFont', font_size=22, color=(0, 0, 0, 1))
+    loading_layout = BoxLayout(orientation='vertical', size_hint=(None, None), size=(100, 100), pos_hint={"center_x": 0.5, "center_y": 0.5})
+    loading_layout.add_widget(loading_circle)
+    loading_layout.add_widget(loading_label)
+    loading_layout.opacity = 0  # Initially hide the loading elements
     
     image_buttons = BoxLayout(orientation='horizontal', size_hint=(0.8, 0.1), pos_hint={"x": 0.1})
 
@@ -375,6 +463,10 @@ def create_layout_story_gen(curr_book, curr_page):
     layout.add_widget(book)
     layout.add_widget(page)
     return layout
+
+def erase_text():
+    if textinput.text == 'What did you draw?':
+        textinput.text = ''
 
 def load_collection():
     window_collection.clear_widgets()
@@ -488,7 +580,7 @@ def create_layout_visualizer(book, page):
         book_title = f'BOOK: {book}'
 
     if page == '0':
-        header = Label(text=f"Visualizing {book_title}", pos_hint={"y": 0.443}, color=(0, 0, 0, 1), font_name='DownloadedFont', font_size=30)
+        # header = Label(text=f"Visualizing {book_title}", pos_hint={"y": 0.443}, color=(0, 0, 0, 1), font_name='DownloadedFont', font_size=30)
         cover = Image(source=f'./myapp/assets/cover.jpg', fit_mode='contain', size_hint=(1, 0.9))
         layout.add_widget(cover)
         
@@ -529,9 +621,10 @@ def create_layout_visualizer(book, page):
         header = Label(text=f"Visualizing page {page} of book {book}", pos_hint={"y": 0.443}, color=(0, 0, 0, 1), font_name='DownloadedFont', font_size=30)
 
         # Add text to the layout within a bounding box
-        text = TextInput(text=txt_page, font_name='DownloadedFont', font_size=20, size_hint=(0.3, 0.7), pos_hint={"x": 0.56, "y": 0.16}, background_color=(0, 0, 0, 0)) 
+        text = TextInput(text=txt_page, font_name='DownloadedFont', font_size=40, size_hint=(0.3, 0.7), pos_hint={"x": 0.56, "y": 0.16}, background_color=(0, 0, 0, 0), foreground_color=(0, 0, 0, 0.60), halign='center')
         layout.add_widget(gen_Image)
         layout.add_widget(text)
+        layout.add_widget(header)
 
     if (int(page) + 1) <= len(os.listdir(f'./Books/{book}')):
         next_page = Button(text='->', size_hint=(0.05, 0.05), pos_hint={"x": 0.94, "y": 0.475})
@@ -545,12 +638,15 @@ def create_layout_visualizer(book, page):
 
     layout.add_widget(logo)
     layout.add_widget(home)
-    layout.add_widget(header)
 
     return layout
 
 def edit_book(book):
     pages = os.listdir(f'./Books/{book}')
+    try: 
+        pages.remove('title.txt')
+    except:
+        pass
     pages = sorted(pages, key=lambda x: int(x))
     window_story.clear_widgets()
     for page in pages:
