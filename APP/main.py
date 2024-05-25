@@ -16,7 +16,7 @@ from kivy.clock import Clock
 from kivy.uix.scrollview import ScrollView
 import os
 import numpy as np
-import blend_modes
+from blend_modes import darken_only
 
 from PIL import Image as PILImage
 import time
@@ -394,18 +394,20 @@ def create_story():
     # Prompt for the title
     layout = FloatLayout()
     background = Image(source='./myapp/assets/backgorund_menu.png', fit_mode='fill')
-    logo = Image(source='./myapp/assets/logo.png', pos_hint={"y": 0.1})
-
+    # logo = Image(source='./myapp/assets/logo.png', pos_hint={"y": 0.1})
+    home = Home()
+    
     title_label = Label(text="Enter the book title:", font_name='DownloadedFont', font_size=25, pos_hint={"x": 0.2, "y": 0.6}, size_hint=(0.6, 0.1))
     title_input = TextInput(font_name='DownloadedFont', font_size=20, size_hint=(0.6, 0.1), pos_hint={"x": 0.2, "y": 0.5})
     save_button = Button(text="Save Title", font_name='DownloadedFont', font_size=25, size_hint=(0.6, 0.1), pos_hint={"x": 0.2, "y": 0.4})
     save_button.bind(on_press=save_title)
 
     layout.add_widget(background)
-    layout.add_widget(logo)
+    # layout.add_widget(logo)
     layout.add_widget(title_label)
     layout.add_widget(title_input)
     layout.add_widget(save_button)
+    layout.add_widget(home)
 
     window_story.clear_widgets()
     window_story.add_widget(layout)
@@ -514,7 +516,9 @@ def create_layout_visualizer(book, page):
             if np.all(image == 255):
                 gen_Image = Image(source=f'./Books/{book}/{page}/sketch.png', pos_hint={"x": -0.15}, size_hint=(1, 1))
             else:
-                gen_Image = Image(source=f'./Books/{book}/{page}/image.png', pos_hint={"x": -0.15}, size_hint=(1, 1))
+                create_merged_image(book, page)
+                # get window width 
+                gen_Image = Image(source=f'./Books/{book}/{page}/merged.png', pos_hint={"x": -0.11, "y":0.08}, size_hint=(Window.width/2150, Window.width/2150))
 
         if not os.path.exists(f'./Books/{book}/{page}/text.txt'):
             with open(f'./Books/{book}/{page}/text.txt', 'w') as f:
@@ -604,6 +608,46 @@ def create_layout_collection():
     layout.add_widget(books_layout)
     layout.add_widget(title)
     return layout
+
+
+def create_merged_image(book, page):
+    # Import foreground image
+    foreground_img_raw = PILImage.open('./Books/' + book + '/' + page + '/image.png')  # RGBA image
+    foreground_img_raw = foreground_img_raw.convert("RGBA")
+    foreground_img = np.array(foreground_img_raw)  # Inputs to blend_modes need to be numpy arrays.
+    foreground_img_float = foreground_img.astype(float)  # Inputs to blend_modes need to be floats.
+
+    # Import background image
+    background_img_raw = PILImage.open('./myapp/assets/crop_book.jpg')  # RGBA image
+    background_img_raw = background_img_raw.convert("RGBA")
+    background_img_raw = background_img_raw.resize(foreground_img_raw.size)
+    background_img = np.array(background_img_raw)  # Inputs to blend_modes need to be numpy arrays.
+    background_img_float = background_img.astype(float)  # Inputs to blend_modes need to be floats.
+
+    # create a white image with the same size as the background and put the foreground image in the middle
+    blank = PILImage.new('RGBA', (background_img_raw.width, background_img_raw.height), (255, 255, 255, 255))
+    blank.paste(foreground_img_raw, (0, 0), foreground_img_raw)
+    foreground_img_float = np.array(blank).astype(float)
+
+    # Blend images
+    opacity = 0.7  # The opacity of the foreground that is blended onto the background is 70 %.
+    blended_img_float = darken_only(background_img_float, foreground_img_float, opacity)
+
+    # Convert blended image back into PIL image
+    blended_img = np.uint8(blended_img_float)  # Image needs to be converted back to uint8 type for PIL handling.
+    blended_img_raw = PILImage.fromarray(blended_img)  # Note that alpha channels are displayed in black by PIL by default.
+                                                    # This behavior is difficult to change (although possible).
+                                                    # If you have alpha channels in your images, then you should give
+                                                    # OpenCV a try.
+
+    # crop the blended image to the size of the foreground image
+    # blended_img_raw = blended_img_raw.crop((115, 87, 265, 237))
+
+    # Save the image in the folder of the book and page with the name merged.png
+    blended_img_raw.save('./Books/' + book + '/' + page + '/merged.png')
+
+    return blended_img_raw
+
 
 
 class MenuApp(App):
