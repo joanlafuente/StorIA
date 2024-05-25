@@ -50,6 +50,10 @@ LabelBase.register(name='DownloadedFont',
 class LogIN(FloatLayout):
     def __init__(self, **kwargs):
         super(LogIN, self).__init__(**kwargs)
+        
+        login = Button(size_hint=(0.1, 0.1), pos_hint={"x": 0.90, "y": 0.88}, background_normal = './myapp/assets/user.png')
+        login.bind(on_press=lambda *args:manager.switch_to(main_window, direction='down'))
+        self.add_widget(login)
 
     def when_pressed(self):
         print("Login button pressed")
@@ -58,9 +62,13 @@ class LogIN(FloatLayout):
 class Home(FloatLayout):
     def __init__(self, **kwargs):
         super(Home, self).__init__(**kwargs)
+        
+        # Create the home button from the image home.png
+        home = Button(size_hint=(0.075, 0.1), pos_hint={"x": 0.01, "y": 0.88}, background_normal = './myapp/assets/home.png') 
+        home.bind(on_press=lambda *args:manager.switch_to(main_window, direction='down'))
+                
+        self.add_widget(home)
 
-    def when_pressed(self):
-        manager.switch_to(main_window, direction='down')
 
 def save_function(curr_book, curr_page):
     drawing.export_to_png(f'./Books/{curr_book}/{curr_page}/tmp.png')
@@ -208,6 +216,7 @@ def text2history(curr_book, curr_page, amount_pages=5):
                     prompt += text
                 else:
                     pass
+    print("Using prompt: ", prompt)
     if prompt != "":
         with open(f'./Books/{curr_book}/{curr_page}/Text2ConditionGen.txt', 'r') as f:
             textinput_text = f.read()
@@ -262,14 +271,21 @@ def create_layout_story_gen(curr_book, curr_page):
     if not os.path.exists(f'./Books/{curr_book}/{curr_page}'):
         os.mkdir(f'./Books/{curr_book}/{curr_page}')
 
+    title_path = f'./Books/{curr_book}/title.txt'
+    if os.path.exists(title_path):
+        with open(title_path, 'r') as f:
+            book_title = f.read()
+    else:
+        book_title = f'BOOK: {curr_book}'
+
     # Add the current page and book to the layout in black color
-    book = Label(text=f'BOOK: {curr_book}',
+    book = Label(text=f'{book_title}',
                 pos_hint={"x": -0.4, "y": 0.443}, 
                 color=(0, 0, 0, 1),
                 font_name='DownloadedFont',
                 font_size=30)
 
-    page = Label(text=f'MODIFING PAGE {curr_page}',
+    page = Label(text=f'PAGE {curr_page}',
                         pos_hint={"y": 0.443}, 
                         color=(0, 0, 0, 1),
                         font_name='DownloadedFont',
@@ -281,7 +297,7 @@ def create_layout_story_gen(curr_book, curr_page):
 
     sketch_layout = BoxLayout(orientation='vertical')
     buttons_sketch = BoxLayout(orientation='horizontal', size_hint=(0.8, 0.1), pos_hint={"x": 0.1})
-    button1 = Button(text='Update the skecth', font_name='DownloadedFont', font_size=22)
+    button1 = Button(text='Update the sketch', font_name='DownloadedFont', font_size=22)
 
     # Delete all widets on window_drawing 
     window_drawing.clear_widgets()
@@ -293,7 +309,7 @@ def create_layout_story_gen(curr_book, curr_page):
     if os.path.exists(f'./Books/{curr_book}/{curr_page}/Text2ConditionGen.txt'):
         textinput_text = open(f'./Books/{curr_book}/{curr_page}/Text2ConditionGen.txt', 'r').read()
     else:
-        textinput_text = 'Text to condition image generation'
+        textinput_text = 'What did you draw?'
 
     textinput = TextInput(text=textinput_text, font_name='DownloadedFont', font_size=17)
     buttons_sketch.add_widget(button1)
@@ -324,9 +340,9 @@ def create_layout_story_gen(curr_book, curr_page):
     
     image_buttons = BoxLayout(orientation='horizontal', size_hint=(0.8, 0.1), pos_hint={"x": 0.1})
 
-    genButton = Button(text='Generate the image and text', font_name='DownloadedFont', font_size=22)
+    genButton = Button(text='Generate!', font_name='DownloadedFont', font_size=22)
     genButton.bind(on_press=lambda *args:call_cluster(curr_book, curr_page))
-    text_editor_button = Button(text='Edit the text', font_name='DownloadedFont', font_size=22)
+    text_editor_button = Button(text='See text', font_name='DownloadedFont', font_size=22)
     text_editor_button.bind(on_press=lambda *args:edit_text(curr_book, curr_page))
 
     image_buttons.add_widget(genButton)
@@ -366,15 +382,35 @@ def load_collection():
     manager.switch_to(window_collection, direction='up')
 
 def create_story():
-    # Look at folder Books to see the number of books and pages
-    # Create a new book with the number of books + 1
-    books = os.listdir('./Books')
-    curr_book = str(len(books) + 1)
-    os.mkdir(f'./Books/{curr_book}')
+    def save_title(instance):
+        curr_book = str(len(os.listdir('./Books')) + 1)
+        os.mkdir(f'./Books/{curr_book}')
+        with open(f'./Books/{curr_book}/title.txt', 'w') as f:
+            f.write(title_input.text)
+        window_story.clear_widgets()
+        window_story.add_widget(create_layout_story_gen(curr_book, '1'))
+        manager.switch_to(window_story, direction='up')
+
+    # Prompt for the title
+    layout = FloatLayout()
+    background = Image(source='./myapp/assets/backgorund_menu.png', fit_mode='fill')
+    logo = Image(source='./myapp/assets/logo.png', pos_hint={"y": 0.1})
+
+    title_label = Label(text="Enter the book title:", font_name='DownloadedFont', font_size=25, pos_hint={"x": 0.2, "y": 0.6}, size_hint=(0.6, 0.1))
+    title_input = TextInput(font_name='DownloadedFont', font_size=20, size_hint=(0.6, 0.1), pos_hint={"x": 0.2, "y": 0.5})
+    save_button = Button(text="Save Title", font_name='DownloadedFont', font_size=25, size_hint=(0.6, 0.1), pos_hint={"x": 0.2, "y": 0.4})
+    save_button.bind(on_press=save_title)
+
+    layout.add_widget(background)
+    layout.add_widget(logo)
+    layout.add_widget(title_label)
+    layout.add_widget(title_input)
+    layout.add_widget(save_button)
 
     window_story.clear_widgets()
-    window_story.add_widget(create_layout_story_gen(curr_book, '1'))
+    window_story.add_widget(layout)
     manager.switch_to(window_story, direction='up')
+
 
 def create_layout_menu():
     background = Image(source='./myapp/assets/backgorund_menu.png', fit_mode='fill')
@@ -441,11 +477,31 @@ def create_layout_visualizer(book, page):
     home = Home()
     layout = FloatLayout()
     layout.add_widget(background)
+    
+    title_path = f'./Books/{book}/title.txt'
+    if os.path.exists(title_path):
+        with open(title_path, 'r') as f:
+            book_title = f.read()
+    else:
+        book_title = f'BOOK: {book}'
 
     if page == '0':
-        header = Label(text=f"Visualizing book {book}", pos_hint={"y": 0.443}, color=(0, 0, 0, 1), font_name='DownloadedFont', font_size=30)
+        header = Label(text=f"Visualizing {book_title}", pos_hint={"y": 0.443}, color=(0, 0, 0, 1), font_name='DownloadedFont', font_size=30)
         cover = Image(source=f'./myapp/assets/cover.jpg', fit_mode='contain', size_hint=(1, 0.9))
         layout.add_widget(cover)
+        
+        # Add the title of the book
+        # Handle long titles by adding line breaks between words
+        words = book_title.split()
+        book_title = ''
+        for i, word in enumerate(words):
+            book_title += word
+            if i % 1 == 0 and i != 0:
+                book_title += '\n'
+            else:
+                book_title += ' '
+        title = Label(text=book_title, pos_hint={"y": 0.1}, color=(0, 0, 0, 1), font_name='DownloadedFont', font_size=70, halign='center')
+        layout.add_widget(title)
         
     else:
         book_back = Image(source='./myapp/assets/book.jpg', fit_mode='fill')
@@ -469,7 +525,7 @@ def create_layout_visualizer(book, page):
         header = Label(text=f"Visualizing page {page} of book {book}", pos_hint={"y": 0.443}, color=(0, 0, 0, 1), font_name='DownloadedFont', font_size=30)
 
         # Add text to the layout within a bounding box
-        text = TextInput(text=txt_page, font_name='DownloadedFont', font_size=20, size_hint=(0.3, 0.7), pos_hint={"x": 0.56, "y": 0.16})
+        text = TextInput(text=txt_page, font_name='DownloadedFont', font_size=20, size_hint=(0.3, 0.7), pos_hint={"x": 0.56, "y": 0.16}, background_color=(0, 0, 0, 0)) 
         layout.add_widget(gen_Image)
         layout.add_widget(text)
 
@@ -518,11 +574,17 @@ def create_layout_collection():
     books_layouts.bind(minimum_height=books_layouts.setter('height'))
 
     for book in books:
+        title_path = f'./Books/{book}/title.txt'
+        if os.path.exists(title_path):
+            with open(title_path, 'r') as f:
+                book_title = f.read()
+        else:
+            book_title = f'BOOK: {book}'
+            
         num_pages = len(os.listdir(f'./Books/{book}'))
         book_layout = BoxLayout(orientation='horizontal', size_hint=(0.8, None), height=50)
-        book_layout.add_widget(Label(text=f'Book {book}, number of pages {num_pages}', 
-                                     font_name='DownloadedFont', font_size=22,
-                                     color=(0, 0, 0, 1)))
+        book_layout.add_widget(Label(text=f'{book_title} - Number of pages: {num_pages}', 
+                                     font_name='DownloadedFont', font_size=20))
         book_layout.add_widget(Button(text='Edit', font_name='DownloadedFont', 
                                       font_size=22, size_hint=(0.5, 1),
                                       on_press=lambda *args, book=book: edit_book(book)))
