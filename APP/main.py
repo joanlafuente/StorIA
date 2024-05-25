@@ -16,12 +16,13 @@ from kivy.clock import Clock
 from kivy.uix.scrollview import ScrollView
 import os
 import numpy as np
+import blend_modes
 
+from PIL import Image as PILImage
 import time
 import cv2
-import os
 from pathlib import Path
-from utils_cluster import receive_image, send_image, execute_ssh_command
+from myapp.utils_cluster import receive_image, send_image, execute_ssh_command
 import dotenv
 dotenv.load_dotenv()
 
@@ -35,7 +36,7 @@ import dotenv
 dotenv.load_dotenv()
 
 # Get the entire path to ./Books folder
-BOOKS = r"C:\Users\Joan\Desktop\Uni\3r Curs\2nd Semestre\Social innovation\Story-Generation\Books"
+BOOKS = "./Books"
 
 # Folder from which we are going to retrieve the images from the text2Sketch model
 #FOLDER_GETTING_FROM_CLUSTER = Path('/hhome/nlp2_g05/social_inovation/Generated_imgs')
@@ -44,7 +45,7 @@ FOLDER_GETTING_FROM_CLUSTER_TXT = '/hhome/nlp2_g05/social_inovation/Generated_tx
 Window.clearcolor = (1, 1, 1, 1)
 
 LabelBase.register(name='DownloadedFont', 
-                   fn_regular='benton-sans-bold.ttf')
+                   fn_regular='./myapp/assets/benton-sans-bold.ttf')
 
 class LogIN(FloatLayout):
     def __init__(self, **kwargs):
@@ -101,13 +102,13 @@ class Drawing(FloatLayout):
         
 def create_layout_draw(curr_book, curr_page):
     print("Window drawing", flush=True)
-    background = Image(source='background_story_gen.jpg', fit_mode='fill')
-    logo = Image(source='logo.png', size_hint=(0.25, 0.25), pos_hint={"x": 0.74, "y": 0.82})
+    background = Image(source='./myapp/assets/background_story_gen.jpg', fit_mode='fill')
+    logo = Image(source='./myapp/assets/logo.png', size_hint=(0.25, 0.25), pos_hint={"x": 0.74, "y": 0.82})
     home = Home()
 
     # Create the whiteboard (White square where the user can draw)
     whiteboard = FloatLayout()
-    whiteboard.add_widget(Image(source='whiteboard.png', size_hint=(0.8, 0.8), pos_hint={"x": 0.125, "y": 0.1}))
+    whiteboard.add_widget(Image(source='./myapp/assets/whiteboard.png', size_hint=(0.8, 0.8), pos_hint={"x": 0.125, "y": 0.1}))
     global drawing
     drawing = Drawing(size_hint=(0.39, 0.8), pos_hint={"x": 0.33, "y": 0.1})
     whiteboard.add_widget(drawing)
@@ -140,8 +141,8 @@ def create_layout_draw(curr_book, curr_page):
 
 def create_layout_edit_text(curr_book, curr_page):
     layout = FloatLayout()
-    background = Image(source='background_story_gen.jpg', fit_mode='fill')
-    logo = Image(source='logo.png', size_hint=(0.25, 0.25), pos_hint={"x": 0.74, "y": 0.82})
+    background = Image(source='./myapp/assets/background_story_gen.jpg', fit_mode='fill')
+    logo = Image(source='./myapp/assets/logo.png', size_hint=(0.25, 0.25), pos_hint={"x": 0.74, "y": 0.82})
     home = Home()
 
     if not os.path.exists(f'./Books/{curr_book}/{curr_page}/text.txt'):
@@ -274,8 +275,8 @@ def create_layout_story_gen(curr_book, curr_page):
                         font_name='DownloadedFont',
                         font_size=30)
 
-    background = Image(source='background_story_gen.jpg', fit_mode='fill')
-    logo = Image(source='logo.png', size_hint=(0.25, 0.25), pos_hint={"x": 0.74, "y": 0.82})
+    background = Image(source='./myapp/assets/background_story_gen.jpg', fit_mode='fill')
+    logo = Image(source='./myapp/assets/logo.png', size_hint=(0.25, 0.25), pos_hint={"x": 0.74, "y": 0.82})
     home = Home()
 
     sketch_layout = BoxLayout(orientation='vertical')
@@ -376,8 +377,8 @@ def create_story():
     manager.switch_to(window_story, direction='up')
 
 def create_layout_menu():
-    background = Image(source='backgorund_menu.png', fit_mode='fill')
-    logo = Image(source='logo.png', pos_hint={"y": 0.1})
+    background = Image(source='./myapp/assets/backgorund_menu.png', fit_mode='fill')
+    logo = Image(source='./myapp/assets/logo.png', pos_hint={"y": 0.1})
     
     # Layout buttons
     layout_b = BoxLayout(orientation='horizontal', size_hint=(0.8, 0.2), pos_hint={"x": 0.1})
@@ -435,19 +436,19 @@ def prev_page_function_vis(book, page):
     manager.switch_to(window_visualizer, direction='right')
 
 def create_layout_visualizer(book, page):
-    background = Image(source='background_story_gen.jpg', fit_mode='fill')
-    logo = Image(source='logo.png', size_hint=(0.25, 0.25), pos_hint={"x": 0.74, "y": 0.82})
+    background = Image(source='./myapp/assets/background_story_gen.jpg', fit_mode='fill')
+    logo = Image(source='./myapp/assets/logo.png', size_hint=(0.25, 0.25), pos_hint={"x": 0.74, "y": 0.82})
     home = Home()
     layout = FloatLayout()
     layout.add_widget(background)
 
     if page == '0':
         header = Label(text=f"Visualizing book {book}", pos_hint={"y": 0.443}, color=(0, 0, 0, 1), font_name='DownloadedFont', font_size=30)
-        cover = Image(source=f'./cover.jpg', fit_mode='contain', size_hint=(1, 0.9))
+        cover = Image(source=f'./myapp/assets/cover.jpg', fit_mode='contain', size_hint=(1, 0.9))
         layout.add_widget(cover)
         
     else:
-        book_back = Image(source='book.jpg', fit_mode='fill')
+        book_back = Image(source='./myapp/assets/book.jpg', fit_mode='fill')
         layout.add_widget(book_back)
         if not os.path.exists(f'./Books/{book}/{page}/image.png'):
             gen_Image = Image(source=f'./Books/{book}/{page}/sketch.png', pos_hint={"x": -0.15}, size_hint=(1, 1))
@@ -502,8 +503,8 @@ def vis_book(book):
     manager.switch_to(window_visualizer, direction='up')
 
 def create_layout_collection():
-    background = Image(source='backgorund_menu.png', fit_mode='fill')
-    logo = Image(source='logo.png', size_hint=(0.25, 0.25), pos_hint={"x": 0.74, "y": 0.82})
+    background = Image(source='./myapp/assets/backgorund_menu.png', fit_mode='fill')
+    logo = Image(source='./myapp/assets/logo.png', size_hint=(0.25, 0.25), pos_hint={"x": 0.74, "y": 0.82})
     title = Label(text=f'STORY COLLECTION',
                         pos_hint={"y": 0.443}, 
                         color=(0, 0, 0, 1),
