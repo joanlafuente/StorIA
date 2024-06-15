@@ -32,6 +32,7 @@ dotenv.load_dotenv()
 global loged_in
 loged_in = False
 
+HOME_CLUSTER = '/hhome/nlp2_g05/social_inovation'
 HOSTNAME = os.getenv('HOSTNAME')
 PORT     = os.getenv('PORT')
 USERNAME = os.getenv('USERNAME_CLUSTER')
@@ -46,8 +47,10 @@ BOOKS = "./Books"
 
 # Folder from which we are going to retrieve the images from the text2Sketch model
 #FOLDER_GETTING_FROM_CLUSTER = Path('/hhome/nlp2_g05/social_inovation/Generated_imgs')
-FOLDER_GETTING_FROM_CLUSTER = '/hhome/nlp2_g05/social_inovation/Generated_imgs'
-FOLDER_GETTING_FROM_CLUSTER_TXT = '/hhome/nlp2_g05/social_inovation/Generated_txt'# Set a white background
+FOLDER_GETTING_FROM_CLUSTER = f'{HOME_CLUSTER}/Generated_imgs'
+FOLDER_GETTING_FROM_CLUSTER_TXT = f'{HOME_CLUSTER}/Generated_txt'
+
+# Set a white background
 Window.clearcolor = (1, 1, 1, 1)
 
 LabelBase.register(name='DownloadedFont', 
@@ -281,7 +284,7 @@ def text2history(curr_book, curr_page, amount_pages=5):
     if prompt != "":
         with open(f'./Books/{curr_book}/{curr_page}/Text2ConditionGen.txt', 'r') as f:
             textinput_text = f.read()
-        execute_ssh_command(HOSTNAME, PORT, USERNAME, PASWORD, f"bash /hhome/nlp2_g05/social_inovation/text2history.sh '{prompt}' '|{textinput_text}'") 
+        execute_ssh_command(HOSTNAME, PORT, USERNAME, PASWORD, f"bash {HOME_CLUSTER}/text2history.sh '{prompt}' '|{textinput_text}'") 
         receive_image(remote_image_path = FOLDER_GETTING_FROM_CLUSTER_TXT + "/text.txt",
                   local_path        = f'./Books/{curr_book}/{curr_page}/text.txt',
                   hostname          = HOSTNAME,
@@ -326,7 +329,7 @@ def sketch2img(curr_book, curr_page):
     # Load the sketch
     print("\n\ncurrent book:", curr_book, curr_page)
     send_image(f'./Books/{curr_book}/{curr_page}/sketch.png', 
-           '/hhome/nlp2_g05/social_inovation/Sketches', 
+           f'{HOME_CLUSTER}/Sketches', 
            HOSTNAME, 
            PORT,
            USERNAME, 
@@ -337,7 +340,7 @@ def sketch2img(curr_book, curr_page):
     with open(f'./Books/{curr_book}/{curr_page}/Text2ConditionGen.txt', 'w') as f:
         f.write(textinput.text)
     
-    execute_ssh_command(HOSTNAME, PORT, USERNAME, PASWORD, f"bash /hhome/nlp2_g05/social_inovation/bash_script.sh '{textinput.text}'")
+    execute_ssh_command(HOSTNAME, PORT, USERNAME, PASWORD, f"bash {HOME_CLUSTER}/bash_script.sh '{textinput.text}'")
     
     time.sleep(1)
     receive_image(remote_image_path = FOLDER_GETTING_FROM_CLUSTER + "/image.png",
@@ -347,8 +350,7 @@ def sketch2img(curr_book, curr_page):
                   username          = USERNAME,
                   password          = PASWORD)
     
-    time.sleep(1)
-    print("\n\nAttribute ", gen_Image.source)
+    time.sleep(3)
     gen_Image.reload()
     # Call the function that will generate the image
 
@@ -689,7 +691,7 @@ def create_layout_collection():
         num_pages = len(os.listdir(f'./Books/{book}'))
         book_layout = BoxLayout(orientation='horizontal', size_hint=(0.8, None), height=50)
         book_layout.add_widget(Label(text=f'{book_title} - Number of pages: {num_pages}', 
-                                     font_name='DownloadedFont', font_size=20))
+                                     font_name='DownloadedFont', font_size=20, color=(0, 0, 0, 1)))
         book_layout.add_widget(Button(text='Edit', font_name='DownloadedFont', 
                                       font_size=22, size_hint=(0.5, 1),
                                       on_press=lambda *args, book=book: edit_book(book)))
