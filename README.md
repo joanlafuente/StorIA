@@ -54,6 +54,8 @@ The different pretrained models that we use for the generative tasks of StorIA a
 - **Text2Text**: [Mistral](https://huggingface.co/mistralai/Mistral-7B-v0.1)
   - Model used to generate the text of a story page.
 
+There is a more specific explanation of the pipeline on the report.
+
 ## Installation and Usage
 
 Before starting clone the repository:
@@ -79,6 +81,8 @@ USERNAME_CLUSTER = '<Username>'
 PASWORD = '<Password>'
 ```
 
+Also, **Text2Text** model (Mistral) requires the use of an Access Token provided by Huggingface. This token must be set on the variable `HG_TOKEN_MISTRAL` at Code_VM/img2text.py, so the model can make inference.
+
 ### Executing StorIA
 
 Execute /APP/main.py and the application will be automatically launched on the main page. There you will have the options to generate a new story or acces previouslly created ones. If you have any proble do not hesitate to contact us.
@@ -89,5 +93,15 @@ The application is develoved in a way that allows you to export it and be used i
 
 Execute /Imagegenerator.py which will launch the gradio interface, in which you are able to generate one image from a sketch, as well as the start of a story from that drawing. The interface will be hosted in your local machine. The IP will be printed in the command line.
 
+## Contributors
 
+Joan Lafuente, joan.lafuente@autonoma.cat
+
+Maria Pilligua, maria.pilligua@autonoma.cat
+
+Nil Biescas, nilbiescas3@gmail.com
+
+Jordi Longaron, jordilongaroncarbonell@gmail.com
+
+Xavi Soto, xaviminisoto@gmail.com
 

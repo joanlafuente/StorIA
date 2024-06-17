@@ -3,6 +3,8 @@ from transformers import Blip2Processor, Blip2ForConditionalGeneration, pipeline
 import torch
 import sys
 import os
+# Use the following line to set the token provided by huggingface to be able to use the Mistral model
+HG_TOKEN_MISTRAL = ""
 
 device = ("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using {device} device")
@@ -14,7 +16,7 @@ blip2 = Blip2ForConditionalGeneration.from_pretrained(
 pipe_mistral = pipeline("text-generation", 
                         model="mistralai/Mistral-7B-v0.1", 
                         device="cuda",
-                        token="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",
+                        token=HG_TOKEN_MISTRAL,
                         )
 
 mistral_tokenizer = pipe_mistral.tokenizer
