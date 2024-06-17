@@ -11,7 +11,7 @@ Since our device will use multiple drawings, it can be made together by differen
 
 Lastly, StorIA will have the option to share your story on an internal social page. This network will have a collection of stories created by kids from all around the world. This way, even if a kid doesn't want to draw, they could read all of the posted stories, and connect with children abroad through those. The internal network will also implement a ranking system where kids can rank the stories they have read and StorIA will award the best stories of the month with some sort of prize, yet to be decided.
 
-More details on StorIA project can be found at the [project report](link.com).
+More details on StorIA project can be found [here](link.com).
 </div>
 
 ## Example page generation:
@@ -61,7 +61,7 @@ There is a more specific explanation of the pipeline on the report.
 Before starting clone the repository:
 
 ```
-git clone https://github.com/joanlafuente/Story-Generation/tree/main
+git clone https://github.com/joanlafuente/StorIA.git
 ```
 And then create a conda environment with the following command:
 ```
