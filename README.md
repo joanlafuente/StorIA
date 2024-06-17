@@ -89,5 +89,7 @@ The application is develoved in a way that allows you to export it and be used i
 
 Execute /Imagegenerator.py which will launch the gradio interface, in which you are able to generate one image from a sketch, as well as the start of a story from that drawing. The interface will be hosted in your local machine. The IP will be printed in the command line.
 
+### Contributors
 
+Nil Biescas Rue nilbiescas3@gmail.com
 
